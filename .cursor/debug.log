@@ -1,0 +1,6 @@
+{"location":"ApiKeysTab.tsx:handleSubmit","message":"Submit started","data":{"name":"Wise API","service":"wise","hasKeyValue":true,"descriptionLen":0},"timestamp":1770917359916,"hypothesisId":"H1,H4"}
+{"location":"api.ts:setApiKey","message":"Request prepared","data":{"url":"http://localhost:3001/api/settings/api-keys","hasName":true,"hasService":true,"hasKeyValue":true,"payloadKeys":["name","service","key_value","description","enabled"]},"timestamp":1770917359917,"hypothesisId":"H1,H2,H4"}
+{"location":"settings.ts:POST api-keys","message":"Request received","data":{"hasName":true,"hasKeyValue":true,"hasService":true,"bodyKeys":["name","service","key_value","description","enabled"]},"timestamp":1770917359956,"hypothesisId":"H1,H2,H4"}
+{"location":"settings.ts:POST api-keys","message":"setApiKey completed","data":{"name":"Wise API","service":"wise"},"timestamp":1770917359970,"hypothesisId":"H5"}
+{"location":"api.ts:setApiKey","message":"Request succeeded","data":{"status":200},"timestamp":1770917359971,"hypothesisId":"H5"}
+{"location":"ApiKeysTab.tsx:handleSubmit","message":"setApiKey succeeded","data":{"name":"Wise API"},"timestamp":1770917359972,"hypothesisId":"H5"}
