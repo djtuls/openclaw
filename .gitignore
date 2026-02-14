@@ -78,6 +78,12 @@ USER.md
 # local tooling
 .serena/
 
+# IDE / editor sessions
+.cursor/
+
+# AnythingLLM workspace sync artifacts
+anythingllm-sync-output/
+
 # Agent credentials and memory (NEVER COMMIT)
 /memory/
 .agent/*.json
