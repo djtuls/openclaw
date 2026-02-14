@@ -181,3 +181,23 @@
 - Publish: `npm publish --access public --otp="<otp>"` (run from the package dir).
 - Verify without local npmrc side effects: `npm view <pkg> version --userconfig "$(mktemp)"`.
 - Kill the tmux session after publish.
+
+## NotebookLM Second Brain
+
+- **Before crawling source files** for architecture understanding, query the NotebookLM master notebook first: `nlm query notebook <MASTER_ID> "your question"`. Codebase snapshot updated via `scripts/nlm-sync-codebase.sh`.
+- **Before debugging unfamiliar errors**, query the Debugging Handbook: `nlm query notebook <DEBUG_ID> "error message or pattern"`.
+- **For security questions** (hardening, CVE impact, OWASP compliance), query the Security Handbook: `nlm query notebook <SECURITY_ID> "your question"`.
+- **For research tasks**, create a temp notebook → add sources → query → document → optionally keep or delete. See `.agents/skills/notebooklm/SKILL.md`.
+- **Creating new notebooks**: use `scripts/nlm-create-notebooks.sh "Name"` for any purpose. Always register in `.agents/skills/notebooklm/references/notebook-registry.md`.
+- **Visualization assets** (architecture diagrams, mind maps): check `visualizations/` before generating new ones.
+- Notebook IDs: `.agents/skills/notebooklm/references/notebook-registry.md`.
+- Codebase sync: run `scripts/nlm-sync-codebase.sh` after major refactors or releases.
+- Auth check: run `nlm login --check` if queries fail.
+- This complements AnythingLLM (local RAG for conversations/memories). Use NotebookLM for structured research, codebase onboarding, and handbook queries.
+- **nlm CLI gotchas:**
+  - Query syntax is `nlm query notebook <id> "question"` — the `notebook` subcommand is required.
+  - Follow-up in same conversation: `nlm query notebook <id> "follow-up" -c <conversation-id>` (get `conversation_id` from previous response JSON).
+  - Install both `nlm` and `repomix` via `uv tool install` (not npm). They go to `~/.local/bin` — ensure PATH includes it.
+  - Python repomix config is incompatible with Node.js repomix; the sync script uses CLI flags directly.
+  - NotebookLM rejects some URLs (e.g. OWASP cheatsheets); Node.js official docs and project docs work fine.
+  - Large source files (~10MB codebase snapshots) take several minutes to index; smaller supplementary files index faster.
