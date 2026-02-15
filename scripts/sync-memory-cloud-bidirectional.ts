@@ -252,16 +252,20 @@ async function listNotebookLLMSources(): Promise<NotebookLLMSource[]> {
     ]);
 
     const sources = JSON.parse(stdout);
-    return sources.map((s: any) => ({
-      id: s.id,
-      title: s.title,
-      created: s.createTime ? new Date(s.createTime) : new Date(),
-    }));
-  } catch (error: any) {
-    if (error.message?.includes("not authenticated")) {
+    return sources.map((s: unknown) => {
+      const source = s as { id: string; title: string; createTime?: string };
+      return {
+        id: source.id,
+        title: source.title,
+        created: source.createTime ? new Date(source.createTime) : new Date(),
+      };
+    });
+  } catch (error: unknown) {
+    const err = error as { message?: string };
+    if (err.message?.includes("not authenticated")) {
       throw error;
     }
-    console.warn("⚠️  Failed to list NotebookLLM sources:", error.message);
+    console.warn("⚠️  Failed to list NotebookLLM sources:", err.message);
     return [];
   }
 }
@@ -308,7 +312,7 @@ async function syncToNotebookLLM(memoryPath: string, db: Database.Database): Pro
   const memory = await parseMemoryFile(memoryPath);
 
   try {
-    const { stdout, stderr } = await execFileNoThrow("nlm", [
+    const { stderr } = await execFileNoThrow("nlm", [
       "source",
       "add",
       TULSBOT_NOTEBOOK_ID,
@@ -321,9 +325,10 @@ async function syncToNotebookLLM(memoryPath: string, db: Database.Database): Pro
     }
 
     return true;
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { message?: string };
     // Handle offline: queue for later
-    if (error.message?.includes("ENOTFOUND") || error.message?.includes("network")) {
+    if (err.message?.includes("ENOTFOUND") || err.message?.includes("network")) {
       console.log(`  📴 Offline: queued ${fileName} for sync`);
       queueSyncOperation(db, {
         file_hash: memory.hash,
@@ -336,11 +341,11 @@ async function syncToNotebookLLM(memoryPath: string, db: Database.Database): Pro
       return false;
     }
 
-    if (error.message?.includes("already exists")) {
+    if (err.message?.includes("already exists")) {
       return true; // Already synced
     }
 
-    if (error.message?.includes("not authenticated")) {
+    if (err.message?.includes("not authenticated")) {
       throw error;
     }
 
@@ -353,7 +358,7 @@ async function syncToNotebookLLM(memoryPath: string, db: Database.Database): Pro
  */
 async function syncFromNotebookLLM(
   localMemoryDir: string,
-  db: Database.Database,
+  _db: Database.Database,
 ): Promise<{ pulled: number; skipped: number }> {
   if (!ENABLE_NOTEBOOKLM) {
     return { pulled: 0, skipped: 0 };
@@ -412,18 +417,20 @@ async function syncFromNotebookLLM(
 
           console.log(`  ⬇️  Pulled from cloud: ${fileName}`);
           pulled++;
-        } catch (error: any) {
-          console.warn(`  ⚠️  Failed to pull ${source.title}:`, error.message);
+        } catch (error: unknown) {
+          const err = error as { message?: string };
+          console.warn(`  ⚠️  Failed to pull ${source.title}:`, err.message);
         }
       } else {
         skipped++;
       }
     }
-  } catch (error: any) {
-    if (error.message?.includes("not authenticated")) {
+  } catch (error: unknown) {
+    const err = error as { message?: string };
+    if (err.message?.includes("not authenticated")) {
       throw error;
     }
-    console.warn("⚠️  Failed to sync from NotebookLLM:", error.message);
+    console.warn("⚠️  Failed to sync from NotebookLLM:", err.message);
   }
 
   return { pulled, skipped };
@@ -469,8 +476,9 @@ async function processSyncQueue(
         console.log(`  ✅ Synced queued item: ${item.file_name}`);
         processed++;
       }
-    } catch (error: any) {
-      markSyncFailed(db, item.id!, error.message);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      markSyncFailed(db, item.id!, err.message || "Unknown error");
       console.error(`  ✗ Failed queued item: ${item.file_name}`);
       failed++;
     }
@@ -520,8 +528,9 @@ async function unifiedSearch(query: string, localMemoryDir: string): Promise<voi
       ]);
 
       console.log(stdout);
-    } catch (error: any) {
-      console.error("  ✗ Cloud search failed:", error.message);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.error("  ✗ Cloud search failed:", err.message);
     }
   }
 
@@ -562,8 +571,9 @@ async function bidirectionalSync(
     // Sync to AnythingLLM
     try {
       await syncToAnythingLLM(memory, brainDir);
-    } catch (error: any) {
-      console.warn(`  ⚠️  AnythingLLM error for ${fileName}:`, error.message);
+    } catch (error: unknown) {
+      const err = error as { message?: string };
+      console.warn(`  ⚠️  AnythingLLM error for ${fileName}:`, err.message);
     }
 
     // Sync to NotebookLLM
@@ -688,7 +698,7 @@ async function main() {
   }
 }
 
-main().catch((error) => {
+main().catch((error: unknown) => {
   console.error("❌ Sync failed:", error);
   process.exit(1);
 });

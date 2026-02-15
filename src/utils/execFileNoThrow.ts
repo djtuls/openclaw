@@ -29,7 +29,7 @@ export async function execFileNoThrow(
       encoding: "utf8",
     });
     return { stdout, stderr };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Return the error along with any output that was captured
     return {
       stdout: error.stdout || "",
