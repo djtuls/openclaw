@@ -75,6 +75,214 @@ The rebuild is NOT from scratch - this is a **hardening and completion** effort 
 
 ---
 
+## 🚀 MULTI-AGENT DEPLOYMENT STRATEGY
+
+To expedite completion, work will be parallelized across multiple specialized agents, reducing the timeline from 6 weeks to 2.5-3 weeks (50% speedup).
+
+### Agent 1 (Pre-Flight) - ✅ COMPLETE
+
+**Duration**: 30 minutes
+**Tasks**:
+
+1. ✅ Verified session archives already committed (working tree clean)
+2. ✅ Verified all pending configuration changes committed
+3. ✅ Confirmed clean git state
+4. ✅ Updated REBUILD-PLAN.md with agent assignments
+
+**Completion**: Feb 16, 2026
+**Next Action**: Spawn Agents 2a, 2b, 2c for parallel Phase 2 execution
+
+---
+
+### PHASE 2 Agents (Parallel Execution - 2-3 days)
+
+**Agent 2a: PR Automation Implementation** (1-2 days)
+
+- Implement automated PR creation workflow
+- Add PR template configuration
+- Add PR validation hooks
+- Test end-to-end PR flow
+
+**Agent 2b: Documentation Audit** (parallel, 1-2 days)
+
+- Audit all README files
+- Update outdated documentation
+- Document new automation workflows
+- Add troubleshooting guides
+
+**Agent 2c: Config Validation** (parallel, 1 day)
+
+- Verify all config-driven settings
+- Test fallback chains
+- Document configuration options
+- Add config validation tests
+
+**Estimated Duration**: 2-3 days (parallel execution)
+**Speedup**: 2.3x faster than 1 week sequential
+
+---
+
+### PHASE 3 Agents (Parallel Execution - 3-4 days)
+
+**Agent 3a: Knowledge Cache Optimization** (2-3 days)
+
+- Implement LRU cache hit rate tracking
+- Add cache warming on startup
+- Implement default agent preloading
+- Add cache metrics to monitoring
+- Target: >80% cache hit rate
+
+**Agent 3b: Feishu Integration Testing** (2 days)
+
+- Write 5-10 core integration tests
+- Test message sending/receiving
+- Test rich message formatting
+- Test error handling
+- Document Feishu-specific patterns
+
+**Agent 3c: Matrix Integration Implementation** (3 days)
+
+- Implement basic Matrix adapter
+- Write 10+ core integration tests
+- Test message sending/receiving
+- Test room operations
+- Document Matrix integration
+
+**Agent 3d: WhatsApp/Signal Test Coverage** (2 days)
+
+- Add attachment handling tests (WhatsApp)
+- Add formatting tests (WhatsApp)
+- Add message send tests (Signal)
+- Verify error recovery for both
+
+**Estimated Duration**: 3-4 days (parallel execution)
+**Speedup**: 3.5x faster than 2 weeks sequential
+
+---
+
+### PHASE 4 Agents (Parallel Execution - 1 week)
+
+**Agent 4a: Error Recovery** (1 week)
+
+- Implement channel disconnection handling
+- Add API failure retry logic
+- Add graceful degradation fallbacks
+- Test all error scenarios
+- Document recovery patterns
+
+**Agent 4b: Performance Optimization** (1 week)
+
+- Add database indexes
+- Implement connection pooling
+- Profile and fix slow queries
+- Add performance benchmarks
+- Document performance targets
+
+**Agent 4c: Observability** (1 week)
+
+- Implement metrics collection
+- Add structured logging
+- Set up distributed tracing
+- Create monitoring dashboards
+- Document observability stack
+
+**Agent 4d: Security Audit** (1 week)
+
+- Audit API key management
+- Implement rate limiting
+- Add input validation
+- Audit dependencies for vulnerabilities
+- Document security posture
+
+**Agent 4e: Load Testing** (1 week)
+
+- Create load test scenarios
+- Test under concurrent load
+- Test memory usage patterns
+- Test database performance
+- Document capacity limits
+
+**Estimated Duration**: 1 week (parallel execution)
+**Speedup**: 2x faster than 2 weeks sequential
+
+---
+
+### PHASE 5 Agents (Parallel Execution - 3-4 days)
+
+**Agent 5a: Developer Tooling** (3-5 days)
+
+- Create setup automation scripts
+- Add debugging helper tools
+- Improve test infrastructure
+- Add development documentation
+
+**Agent 5b: Coverage & Quality** (3-5 days)
+
+- Set up coverage tracking
+- Identify coverage gaps
+- Add missing tests
+- Document quality metrics
+
+**Agent 5c: Final Documentation** (3-5 days)
+
+- Create deployment guide
+- Write operations runbook
+- Document troubleshooting procedures
+- Create architecture diagrams
+
+**Estimated Duration**: 3-4 days (parallel execution)
+**Speedup**: 2x faster than 1 week sequential
+
+---
+
+### Revised Timeline with Multi-Agent Deployment
+
+| Phase   | Sequential | **Parallel** | Speedup     |
+| ------- | ---------- | ------------ | ----------- |
+| Phase 1 | 1-2 days   | ✅ COMPLETE  | —           |
+| Phase 2 | 1 week     | **2-3 days** | 2.3x faster |
+| Phase 3 | 2 weeks    | **3-4 days** | 3.5x faster |
+| Phase 4 | 2 weeks    | **1 week**   | 2x faster   |
+| Phase 5 | 1 week     | **3-4 days** | 2x faster   |
+
+**Original Timeline**: ~5-6 weeks sequential
+**Parallel Timeline**: **~2.5-3 weeks** with multi-agent deployment
+
+---
+
+### Agent Coordination Protocol
+
+**Communication Channel**:
+
+- All agents log progress to `sessions/agent-{N}-{task-name}.md`
+- Critical blockers reported immediately via session archive
+- Daily sync: Each agent updates status in REBUILD-PLAN.md
+
+**Dependency Management**:
+
+- **Phase 2**: NO inter-agent dependencies (fully parallel)
+- **Phase 3**: Minimal dependencies
+  - Agent 3a (cache) must complete before Agent 3d tests caching
+  - Agents 3b and 3c (Feishu/Matrix) are independent
+- **Phase 4**: Fully independent (parallel)
+- **Phase 5**: Fully independent (parallel)
+
+**Conflict Resolution**:
+
+- File ownership: Each agent owns distinct files/modules
+- Test suite: All agents must maintain 100% pass rate
+- Merge conflicts: Later agents rebase on earlier commits
+
+**Quality Gates** (Each agent must):
+
+1. ✅ Maintain 100% test pass rate
+2. ✅ Add tests for new functionality
+3. ✅ Update documentation
+4. ✅ Create session archive with learnings
+5. ✅ Update REBUILD-PLAN.md with completion status
+
+---
+
 ### PHASE 2: Integration Hardening - **35% STARTED** 🔄
 
 | Task                            | Status         | Notes                                                          |
@@ -86,7 +294,7 @@ The rebuild is NOT from scratch - this is a **hardening and completion** effort 
 **Blocking**: Task 2.1 - E2E test verification
 **Priority**: MEDIUM - System works but not flexible
 
-**Estimated Duration**: 1 week
+**Estimated Duration**: ~~1 week~~ **2-3 days with Agents 2a/2b/2c (parallel)**
 **Dependencies**: Phase 1 must be 100% complete
 
 ---
@@ -300,6 +508,7 @@ The rebuild is NOT from scratch - this is a **hardening and completion** effort 
    - `telegram-integration.e2e.test.ts` (UNTRACKED - decide git disposition)
 
 4. 🔄 **Check A2UI bundle status**:
+
    ```bash
    ls -lh assets/a2ui/
    ```
