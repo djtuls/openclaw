@@ -74,8 +74,8 @@ describe("Knowledge Loader Telemetry", () => {
       expect(dashboard.cache.hits).toBe(0);
       expect(dashboard.summary.cacheHitRate).toBe(0);
 
-      // Second load - cache hit
-      await findAgentByName("test");
+      // Second load - cache hit (same agent)
+      await findAgentByName(testAgentName);
       dashboard = getTelemetryDashboard();
 
       expect(dashboard.summary.totalLoadsProcessed).toBe(2);
@@ -157,7 +157,7 @@ describe("Knowledge Loader Telemetry", () => {
         return;
       }
 
-      await findAgentByName(agentNames[0]);
+      const agent = await findAgentByName(agentNames[0]);
       const dashboard = getTelemetryDashboard();
 
       expect(dashboard.summary.memoryUsageMB).toBeGreaterThan(0);
