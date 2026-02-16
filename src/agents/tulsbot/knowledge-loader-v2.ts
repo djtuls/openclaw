@@ -59,14 +59,16 @@ interface KnowledgeIndex {
 }
 
 /**
- * LRU Cache for recently accessed agents
+ * LRU Cache for recently accessed agents with eviction telemetry
  */
 class LRUCache<K, V> {
   private cache = new Map<K, V>();
   private readonly maxSize: number;
+  private evictionCallback?: (key: K) => void;
 
-  constructor(maxSize = 50) {
+  constructor(maxSize = 50, evictionCallback?: (key: K) => void) {
     this.maxSize = maxSize;
+    this.evictionCallback = evictionCallback;
   }
 
   get(key: K): V | undefined {
@@ -88,6 +90,8 @@ class LRUCache<K, V> {
       const firstKey = this.cache.keys().next().value;
       if (firstKey !== undefined) {
         this.cache.delete(firstKey);
+        stats.cacheEvictions++;
+        this.evictionCallback?.(firstKey);
       }
     }
 
@@ -105,17 +109,34 @@ class LRUCache<K, V> {
   get size(): number {
     return this.cache.size;
   }
+
+  /**
+   * Get all keys in LRU order (oldest first)
+   */
+  keys(): K[] {
+    return Array.from(this.cache.keys());
+  }
 }
 
 /**
- * Global caches
+ * Global caches with eviction callback
  */
 let cachedIndex: KnowledgeIndex | null = null;
 let indexLoadTime: number | null = null;
-const agentCache = new LRUCache<string, TulsbotSubAgent>(50);
+const agentCache = new LRUCache<string, TulsbotSubAgent>(50, (evictedAgentName) => {
+  // Track evicted agent metrics
+  if (process.env.DEBUG_KNOWLEDGE_CACHE) {
+    const metrics = agentMetrics.get(evictedAgentName);
+    if (metrics) {
+      console.log(
+        `[KnowledgeLoaderV2] Cache eviction: ${evictedAgentName} (accessed ${metrics.accessCount}x, avg load: ${metrics.avgLoadTimeMs.toFixed(2)}ms)`,
+      );
+    }
+  }
+});
 
 /**
- * Statistics for monitoring
+ * Statistics for monitoring and telemetry
  */
 interface CacheStats {
   indexLoaded: boolean;
@@ -124,6 +145,25 @@ interface CacheStats {
   cacheHits: number;
   cacheMisses: number;
   totalLoads: number;
+  // New telemetry fields
+  avgLoadTimeMs: number;
+  maxLoadTimeMs: number;
+  minLoadTimeMs: number;
+  totalLoadTimeMs: number;
+  cacheEvictions: number;
+  memoryUsageBytes: number;
+  lastResetTime: number;
+}
+
+/**
+ * Per-agent timing and access metrics
+ */
+interface AgentMetrics {
+  name: string;
+  accessCount: number;
+  lastAccessTime: number;
+  avgLoadTimeMs: number;
+  totalLoadTimeMs: number;
 }
 
 let stats: CacheStats = {
@@ -133,7 +173,17 @@ let stats: CacheStats = {
   cacheHits: 0,
   cacheMisses: 0,
   totalLoads: 0,
+  avgLoadTimeMs: 0,
+  maxLoadTimeMs: 0,
+  minLoadTimeMs: Number.POSITIVE_INFINITY,
+  totalLoadTimeMs: 0,
+  cacheEvictions: 0,
+  memoryUsageBytes: 0,
+  lastResetTime: Date.now(),
 };
+
+// Per-agent metrics tracking
+const agentMetrics = new Map<string, AgentMetrics>();
 
 /**
  * Get default knowledge directory path
@@ -186,14 +236,23 @@ async function loadIndex(): Promise<KnowledgeIndex> {
 }
 
 /**
- * Load a specific agent by name
+ * Load a specific agent by name with detailed telemetry
  */
 async function loadAgent(agentName: string): Promise<TulsbotSubAgent> {
+  const loadStartTime = performance.now();
   stats.totalLoads++;
 
   // Check cache first
   if (agentCache.has(agentName)) {
     stats.cacheHits++;
+
+    // Update agent-level metrics
+    const metrics = agentMetrics.get(agentName);
+    if (metrics) {
+      metrics.accessCount++;
+      metrics.lastAccessTime = Date.now();
+    }
+
     return agentCache.get(agentName)!;
   }
 
@@ -219,12 +278,48 @@ async function loadAgent(agentName: string): Promise<TulsbotSubAgent> {
     agentCache.set(agentName, agent);
     stats.cachedAgents = agentCache.size;
 
+    // Track load time
+    const loadDuration = performance.now() - loadStartTime;
+    updateLoadMetrics(loadDuration, agentName, content.length);
+
     return agent;
   } catch (error) {
     throw new Error(
       `Failed to load agent '${agentName}' from ${agentPath}: ${error instanceof Error ? error.message : "Unknown error"}`,
       { cause: error },
     );
+  }
+}
+
+/**
+ * Update load time and memory metrics
+ */
+function updateLoadMetrics(durationMs: number, agentName: string, contentBytes: number): void {
+  // Update global stats
+  stats.totalLoadTimeMs += durationMs;
+  stats.avgLoadTimeMs = stats.totalLoadTimeMs / stats.totalLoads;
+  stats.maxLoadTimeMs = Math.max(stats.maxLoadTimeMs, durationMs);
+  stats.minLoadTimeMs = Math.min(stats.minLoadTimeMs, durationMs);
+
+  // Estimate memory usage (rough approximation)
+  stats.memoryUsageBytes += contentBytes;
+
+  // Update per-agent metrics
+  let metrics = agentMetrics.get(agentName);
+  if (!metrics) {
+    metrics = {
+      name: agentName,
+      accessCount: 1,
+      lastAccessTime: Date.now(),
+      avgLoadTimeMs: durationMs,
+      totalLoadTimeMs: durationMs,
+    };
+    agentMetrics.set(agentName, metrics);
+  } else {
+    metrics.accessCount++;
+    metrics.lastAccessTime = Date.now();
+    metrics.totalLoadTimeMs += durationMs;
+    metrics.avgLoadTimeMs = metrics.totalLoadTimeMs / metrics.accessCount;
   }
 }
 
@@ -394,7 +489,7 @@ export async function findAgentsByTrigger(trigger: string): Promise<string[]> {
 }
 
 /**
- * Get metadata about the cache
+ * Get metadata about the cache with full telemetry
  */
 export function getCacheMetadata(): {
   version: string;
@@ -415,12 +510,198 @@ export function getCacheMetadata(): {
 }
 
 /**
- * Clear the cache (useful for testing)
+ * Get detailed telemetry dashboard data
+ */
+export function getTelemetryDashboard(): {
+  summary: {
+    cacheHitRate: number;
+    avgLoadTimeMs: number;
+    totalLoadsProcessed: number;
+    uptimeMs: number;
+    memoryUsageMB: number;
+  };
+  performance: {
+    minLoadTimeMs: number;
+    maxLoadTimeMs: number;
+    avgLoadTimeMs: number;
+    totalLoadTimeMs: number;
+  };
+  cache: {
+    hits: number;
+    misses: number;
+    hitRate: number;
+    size: number;
+    maxSize: number;
+    utilizationPercent: number;
+    evictions: number;
+  };
+  topAgents: Array<{
+    name: string;
+    accessCount: number;
+    avgLoadTimeMs: number;
+    lastAccessedAgo: string;
+  }>;
+} {
+  const uptime = Date.now() - stats.lastResetTime;
+  const hitRate = stats.totalLoads > 0 ? (stats.cacheHits / stats.totalLoads) * 100 : 0;
+  const utilizationPercent = (agentCache.size / 50) * 100;
+
+  // Get top 10 most accessed agents
+  const topAgents = Array.from(agentMetrics.values())
+    .toSorted((a, b) => b.accessCount - a.accessCount)
+    .slice(0, 10)
+    .map((m) => ({
+      name: m.name,
+      accessCount: m.accessCount,
+      avgLoadTimeMs: Number(m.avgLoadTimeMs.toFixed(2)),
+      lastAccessedAgo: formatTimeSince(Date.now() - m.lastAccessTime),
+    }));
+
+  return {
+    summary: {
+      cacheHitRate: Number(hitRate.toFixed(2)),
+      avgLoadTimeMs: Number(stats.avgLoadTimeMs.toFixed(2)),
+      totalLoadsProcessed: stats.totalLoads,
+      uptimeMs: uptime,
+      memoryUsageMB: Number((stats.memoryUsageBytes / 1024 / 1024).toFixed(2)),
+    },
+    performance: {
+      minLoadTimeMs:
+        stats.minLoadTimeMs === Number.POSITIVE_INFINITY
+          ? 0
+          : Number(stats.minLoadTimeMs.toFixed(2)),
+      maxLoadTimeMs: Number(stats.maxLoadTimeMs.toFixed(2)),
+      avgLoadTimeMs: Number(stats.avgLoadTimeMs.toFixed(2)),
+      totalLoadTimeMs: Number(stats.totalLoadTimeMs.toFixed(2)),
+    },
+    cache: {
+      hits: stats.cacheHits,
+      misses: stats.cacheMisses,
+      hitRate: Number(hitRate.toFixed(2)),
+      size: agentCache.size,
+      maxSize: 50,
+      utilizationPercent: Number(utilizationPercent.toFixed(2)),
+      evictions: stats.cacheEvictions,
+    },
+    topAgents,
+  };
+}
+
+/**
+ * Get cache health status
+ */
+export function getCacheHealth(): {
+  status: "healthy" | "warning" | "critical";
+  issues: string[];
+  recommendations: string[];
+} {
+  const dashboard = getTelemetryDashboard();
+  const issues: string[] = [];
+  const recommendations: string[] = [];
+  let status: "healthy" | "warning" | "critical" = "healthy";
+
+  // Check cache hit rate
+  if (dashboard.cache.hitRate < 80) {
+    status = "warning";
+    issues.push(`Low cache hit rate: ${dashboard.cache.hitRate}% (target: >95%)`);
+    recommendations.push("Consider preloading frequently used agents on startup");
+  }
+
+  // Check cache utilization
+  if (dashboard.cache.utilizationPercent > 90) {
+    status = dashboard.cache.evictions > 100 ? "critical" : "warning";
+    issues.push(`High cache utilization: ${dashboard.cache.utilizationPercent}%`);
+    if (dashboard.cache.evictions > 100) {
+      issues.push(`Excessive evictions: ${dashboard.cache.evictions} (indicates cache thrashing)`);
+      recommendations.push("Increase cache size (LRUCache maxSize) to reduce evictions");
+    }
+  }
+
+  // Check load time performance
+  if (dashboard.performance.avgLoadTimeMs > 10) {
+    status = status === "critical" ? "critical" : "warning";
+    issues.push(`Slow avg load time: ${dashboard.performance.avgLoadTimeMs}ms (target: <5ms)`);
+    recommendations.push("Investigate disk I/O performance or reduce agent file sizes");
+  }
+
+  return { status, issues, recommendations };
+}
+
+/**
+ * Format milliseconds into human-readable time
+ */
+function formatTimeSince(ms: number): string {
+  if (ms < 1000) {
+    return `${ms.toFixed(0)}ms`;
+  }
+  if (ms < 60000) {
+    return `${(ms / 1000).toFixed(1)}s`;
+  }
+  if (ms < 3600000) {
+    return `${(ms / 60000).toFixed(1)}m`;
+  }
+  return `${(ms / 3600000).toFixed(1)}h`;
+}
+
+/**
+ * Print telemetry dashboard to console
+ */
+export function printTelemetryDashboard(): void {
+  const dashboard = getTelemetryDashboard();
+  const health = getCacheHealth();
+
+  console.log("\n" + "=".repeat(60));
+  console.log("📊 KNOWLEDGE LOADER TELEMETRY DASHBOARD");
+  console.log("=".repeat(60));
+
+  console.log("\n🎯 SUMMARY");
+  console.log(`  Cache Hit Rate: ${dashboard.summary.cacheHitRate}%`);
+  console.log(`  Avg Load Time: ${dashboard.summary.avgLoadTimeMs}ms`);
+  console.log(`  Total Loads: ${dashboard.summary.totalLoadsProcessed}`);
+  console.log(`  Memory Usage: ${dashboard.summary.memoryUsageMB}MB`);
+  console.log(`  Uptime: ${formatTimeSince(dashboard.summary.uptimeMs)}`);
+
+  console.log("\n⚡ PERFORMANCE");
+  console.log(`  Min Load Time: ${dashboard.performance.minLoadTimeMs}ms`);
+  console.log(`  Max Load Time: ${dashboard.performance.maxLoadTimeMs}ms`);
+  console.log(`  Avg Load Time: ${dashboard.performance.avgLoadTimeMs}ms`);
+
+  console.log("\n💾 CACHE");
+  console.log(`  Hit Rate: ${dashboard.cache.hitRate}%`);
+  console.log(`  Hits: ${dashboard.cache.hits} | Misses: ${dashboard.cache.misses}`);
+  console.log(
+    `  Size: ${dashboard.cache.size}/${dashboard.cache.maxSize} (${dashboard.cache.utilizationPercent}%)`,
+  );
+  console.log(`  Evictions: ${dashboard.cache.evictions}`);
+
+  console.log("\n🔥 TOP 10 AGENTS");
+  dashboard.topAgents.forEach((agent, idx) => {
+    console.log(
+      `  ${idx + 1}. ${agent.name} - ${agent.accessCount}x, ${agent.avgLoadTimeMs}ms avg, ${agent.lastAccessedAgo} ago`,
+    );
+  });
+
+  console.log(`\n🏥 HEALTH STATUS: ${health.status.toUpperCase()}`);
+  if (health.issues.length > 0) {
+    console.log("\n⚠️  Issues:");
+    health.issues.forEach((issue) => console.log(`    - ${issue}`));
+  }
+  if (health.recommendations.length > 0) {
+    console.log("\n💡 Recommendations:");
+    health.recommendations.forEach((rec) => console.log(`    - ${rec}`));
+  }
+
+  console.log("\n" + "=".repeat(60) + "\n");
+}
+
+/**
+ * Clear the cache and reset all metrics (useful for testing)
  */
 export function clearCache(): void {
   cachedIndex = null;
   indexLoadTime = null;
   agentCache.clear();
+  agentMetrics.clear();
   stats = {
     indexLoaded: false,
     indexLoadTimeMs: null,
@@ -428,20 +709,65 @@ export function clearCache(): void {
     cacheHits: 0,
     cacheMisses: 0,
     totalLoads: 0,
+    avgLoadTimeMs: 0,
+    maxLoadTimeMs: 0,
+    minLoadTimeMs: Number.POSITIVE_INFINITY,
+    totalLoadTimeMs: 0,
+    cacheEvictions: 0,
+    memoryUsageBytes: 0,
+    lastResetTime: Date.now(),
   };
 }
 
 /**
- * Preload frequently used agents into cache
+ * Preload frequently used agents into cache (cache warming)
  */
 export async function preloadAgents(agentNames: string[]): Promise<void> {
-  console.log(`[KnowledgeLoaderV2] Preloading ${agentNames.length} agents...`);
+  console.log(`[KnowledgeLoaderV2] Cache warming: preloading ${agentNames.length} agents...`);
 
   const startTime = performance.now();
-  await Promise.all(agentNames.map((name) => loadAgent(name)));
+  const results = await Promise.allSettled(agentNames.map((name) => loadAgent(name)));
 
   const duration = performance.now() - startTime;
+  const successful = results.filter((r) => r.status === "fulfilled").length;
+  const failed = results.filter((r) => r.status === "rejected").length;
+
   console.log(
-    `[KnowledgeLoaderV2] Preloaded ${agentNames.length} agents in ${duration.toFixed(2)}ms`,
+    `[KnowledgeLoaderV2] Cache warming complete: ${successful}/${agentNames.length} agents loaded in ${duration.toFixed(2)}ms`,
   );
+
+  if (failed > 0) {
+    console.warn(`[KnowledgeLoaderV2] Failed to preload ${failed} agents`);
+    results.forEach((result, idx) => {
+      if (result.status === "rejected") {
+        console.error(`  - ${agentNames[idx]}: ${result.reason}`);
+      }
+    });
+  }
+}
+
+/**
+ * Auto-detect and preload high-frequency agents based on access patterns
+ */
+export async function warmCacheWithFrequentAgents(topN = 10): Promise<void> {
+  if (agentMetrics.size === 0) {
+    console.log("[KnowledgeLoaderV2] No access history available for cache warming");
+    return;
+  }
+
+  // Get top N most frequently accessed agents
+  const frequentAgents = Array.from(agentMetrics.values())
+    .toSorted((a, b) => b.accessCount - a.accessCount)
+    .slice(0, topN)
+    .map((m) => m.name);
+
+  if (frequentAgents.length === 0) {
+    console.log("[KnowledgeLoaderV2] No frequent agents found for cache warming");
+    return;
+  }
+
+  console.log(
+    `[KnowledgeLoaderV2] Auto-warming cache with ${frequentAgents.length} frequently accessed agents`,
+  );
+  await preloadAgents(frequentAgents);
 }
