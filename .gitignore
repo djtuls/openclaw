@@ -92,3 +92,6 @@ local/
 # Block Tulsbot knowledge base directory, but allow src/agents/tulsbot/ integration code
 /Tulsbot/
 ~/Backend_local Macbook/Tulsbot/
+
+# Brain knowledge sync runtime state
+.sync-state.db

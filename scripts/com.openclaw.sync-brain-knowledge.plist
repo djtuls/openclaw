@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.openclaw.sync-brain-knowledge</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/node</string>
+        <string>--import</string>
+        <string>tsx</string>
+        <string>scripts/sync-brain-knowledge.ts</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/tulioferro/Backend_local Macbook/openclaw_repo</string>
+
+    <!-- Run 3x/day: 9am, 2pm, 9pm -->
+    <key>StartCalendarInterval</key>
+    <array>
+        <dict>
+            <key>Hour</key>
+            <integer>9</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>14</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+        <dict>
+            <key>Hour</key>
+            <integer>21</integer>
+            <key>Minute</key>
+            <integer>0</integer>
+        </dict>
+    </array>
+
+    <!-- Also run once on load (service install / restart) -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Logging -->
+    <key>StandardOutPath</key>
+    <string>/Users/tulioferro/.openclaw/logs/brain-knowledge-stdout.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/tulioferro/.openclaw/logs/brain-knowledge-stderr.log</string>
+
+    <!-- Environment: inherit PATH for node/tsx/git -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>
