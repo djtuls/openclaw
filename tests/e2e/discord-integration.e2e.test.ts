@@ -474,7 +474,7 @@ describe("Discord E2E Integration", () => {
       // Simulate multiple messages in same session
       const messages = ["First message", "Second message", "Third message"];
 
-      messages.forEach((msg) => {
+      messages.forEach((_msg) => {
         const agent = resolveSessionAgentId({ sessionKey, config: mockConfig });
         expect(agent).toBe("tulsbot");
       });
@@ -610,7 +610,7 @@ describe("Discord E2E Integration", () => {
         { content: "Final clarification", index: 3 },
       ];
 
-      messages.forEach((msg) => {
+      messages.forEach((_msg) => {
         const sessionKey = `tulsbot:discord:thread:${threadId}`;
         const agentId = resolveSessionAgentId({ sessionKey, config: mockConfig });
 

@@ -358,7 +358,7 @@ function createLazyAgentArray(index: KnowledgeIndex): TulsbotSubAgent[] {
         const idx = parseInt(prop, 10);
         if (idx >= 0 && idx < agentNames.length) {
           // Lazy load agent on access
-          const agentName = agentNames[idx];
+          const _agentName = agentNames[idx];
           // Return a promise-like object (agents must be awaited)
           throw new Error(
             "Direct index access not supported in lazy mode. Use findAgentByName() or listAgentNames() instead.",
