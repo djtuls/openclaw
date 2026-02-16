@@ -152,24 +152,76 @@ export async function searchKeyword(params: {
     return [];
   }
 
-  const rows = params.db
+  // DEBUG: Log all parameters
+  console.log("\n=== searchKeyword DEBUG ===");
+  console.log("Original query:", params.query);
+  console.log("FTS query:", ftsQuery);
+  console.log("Provider model:", params.providerModel);
+  console.log("FTS table:", params.ftsTable);
+  console.log("Source filter SQL:", params.sourceFilter.sql);
+  console.log("Source filter params:", params.sourceFilter.params);
+  console.log("Limit:", params.limit);
+
+  // TWO-STEP QUERY APPROACH to avoid JOIN on UNINDEXED column:
+  // Step 1: Query FTS5 table with MATCH to get matching ids and their BM25 ranks
+  // Step 2: Use those ids to query chunks table with filters (model, source, namespace)
+
+  // Step 1: FTS5 MATCH query - get all matching ids with ranks
+  // Note: We intentionally fetch MORE results than limit because filtering in Step 2 may reduce count
+  const ftsRows = params.db
     .prepare(
-      `SELECT id, path, source, start_line, end_line, text,\n` +
-        `       bm25(${params.ftsTable}) AS rank\n` +
+      `SELECT ${params.ftsTable}.id, bm25(${params.ftsTable}) AS rank\n` +
         `  FROM ${params.ftsTable}\n` +
-        ` WHERE ${params.ftsTable} MATCH ? AND model = ?${params.sourceFilter.sql}\n` +
+        ` WHERE ${params.ftsTable} MATCH ?\n` +
         ` ORDER BY rank ASC\n` +
         ` LIMIT ?`,
     )
-    .all(ftsQuery, params.providerModel, ...params.sourceFilter.params, params.limit) as Array<{
+    .all(ftsQuery, params.limit * 3) as Array<{ id: string; rank: number }>;
+
+  console.log("Step 1 - FTS5 MATCH results:", ftsRows.length);
+
+  if (ftsRows.length === 0) {
+    console.log("No FTS5 matches found");
+    return [];
+  }
+
+  // Step 2: Query chunks table with id filter and other constraints
+  const idList = ftsRows.map((r) => r.id);
+  const placeholders = idList.map(() => "?").join(",");
+
+  const chunksQuery =
+    `SELECT c.id, c.path, c.source, c.start_line, c.end_line, c.text\n` +
+    `  FROM chunks c\n` +
+    ` WHERE c.id IN (${placeholders}) AND c.model = ?${params.sourceFilter.sql}`;
+
+  console.log("Step 2 - Chunks query:", chunksQuery);
+
+  const chunkRows = params.db
+    .prepare(chunksQuery)
+    .all(...idList, params.providerModel, ...params.sourceFilter.params) as Array<{
     id: string;
     path: string;
     source: SearchSource;
     start_line: number;
     end_line: number;
     text: string;
-    rank: number;
   }>;
+
+  console.log("Step 2 - Chunks results:", chunkRows.length);
+
+  // Create a map of id -> rank from FTS results
+  const rankMap = new Map(ftsRows.map((r) => [r.id, r.rank]));
+
+  // Join results: match chunks with their BM25 ranks
+  const rows = chunkRows
+    .map((chunk) => ({
+      ...chunk,
+      rank: rankMap.get(chunk.id) ?? 0,
+    }))
+    .toSorted((a, b) => a.rank - b.rank) // Sort by BM25 rank (lower is better)
+    .slice(0, params.limit); // Apply final limit
+
+  console.log("Final results after joining and limiting:", rows.length);
 
   return rows.map((row) => {
     const textScore = params.bm25RankToScore(row.rank);

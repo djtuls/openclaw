@@ -8,6 +8,17 @@ export type AcpSession = {
   createdAt: number;
   abortController: AbortController | null;
   activeRunId: string | null;
+  systemContext?: {
+    knowledgeBase?: any;
+    memoryContext?: any;
+    subAgentRoster?: any[];
+  };
+  metadata?: {
+    activeSubAgent?: string;
+    knowledgeVersion?: string;
+    workingMemory?: any[];
+    [key: string]: any;
+  };
 };
 
 export type AcpServerOptions = {

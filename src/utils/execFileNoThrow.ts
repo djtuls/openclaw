@@ -30,11 +30,12 @@ export async function execFileNoThrow(
     });
     return { stdout, stderr };
   } catch (error: unknown) {
-    // Return the error along with any output that was captured
+    // execFile rejects with an error that includes stdout/stderr from the process
+    const execErr = error as { stdout?: string; stderr?: string };
     return {
-      stdout: error.stdout || "",
-      stderr: error.stderr || "",
-      error: error,
+      stdout: execErr.stdout ?? "",
+      stderr: execErr.stderr ?? "",
+      error: error instanceof Error ? error : new Error(String(error)),
     };
   }
 }

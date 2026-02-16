@@ -271,7 +271,20 @@ export function onceMessage<T = unknown>(
     const closeHandler = (code: number, reason: Buffer) => {
       clearTimeout(timer);
       ws.off("message", handler);
-      reject(new Error(`closed ${code}: ${reason.toString()}`));
+      // Provide clearer error messaging for normal vs abnormal closures
+      if (code === 1000) {
+        reject(
+          new Error(
+            `WebSocket closed normally (code 1000) before expected message arrived${reason.length > 0 ? `: ${reason.toString()}` : ""}`,
+          ),
+        );
+      } else {
+        reject(
+          new Error(
+            `WebSocket closed abnormally (code ${code})${reason.length > 0 ? `: ${reason.toString()}` : ""}`,
+          ),
+        );
+      }
     };
     const handler = (data: WebSocket.RawData) => {
       const obj = JSON.parse(rawDataToString(data));
@@ -309,10 +322,22 @@ export async function startServerWithClient(
     (typeof (testState.gatewayAuth as { token?: unknown } | undefined)?.token === "string"
       ? (testState.gatewayAuth as { token?: string }).token
       : undefined);
+
+  // DEBUG: Log token resolution
+  const fs = require("node:fs");
+  fs.appendFileSync(
+    "/tmp/openclaw-auth-debug.log",
+    `[${new Date().toISOString()}] startServerWithClient: token param=${token?.length ?? "undefined"} chars, fallbackToken=${fallbackToken?.length ?? "undefined"} chars\n`,
+  );
+
   if (fallbackToken === undefined) {
     delete process.env.OPENCLAW_GATEWAY_TOKEN;
   } else {
     process.env.OPENCLAW_GATEWAY_TOKEN = fallbackToken;
+    fs.appendFileSync(
+      "/tmp/openclaw-auth-debug.log",
+      `[${new Date().toISOString()}] startServerWithClient: Set env.OPENCLAW_GATEWAY_TOKEN=${fallbackToken?.length} chars\n`,
+    );
   }
 
   let server: Awaited<ReturnType<typeof startGatewayServer>> | null = null;
@@ -426,6 +451,13 @@ export async function connectReq(
         : process.env.OPENCLAW_GATEWAY_PASSWORD;
   const token = opts?.token ?? defaultToken;
   const password = opts?.password ?? defaultPassword;
+
+  // DEBUG: Log token resolution in connectReq
+  const fs = require("node:fs");
+  fs.appendFileSync(
+    "/tmp/openclaw-auth-debug.log",
+    `[${new Date().toISOString()}] connectReq: opts.token=${opts?.token?.length ?? "undefined"} chars, defaultToken=${defaultToken?.length ?? "undefined"} chars, final token=${token?.length ?? "undefined"} chars\n`,
+  );
   const requestedScopes = Array.isArray(opts?.scopes)
     ? opts.scopes
     : role === "operator"

@@ -61,7 +61,7 @@ export type MemoryProviderStatus = {
 export interface MemorySearchManager {
   search(
     query: string,
-    opts?: { maxResults?: number; minScore?: number; sessionKey?: string },
+    opts?: { maxResults?: number; minScore?: number; sessionKey?: string; namespace?: string },
   ): Promise<MemorySearchResult[]>;
   readFile(params: {
     relPath: string;

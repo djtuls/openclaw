@@ -406,6 +406,14 @@ export function attachGatewayWsMessageHandler(params: {
         }
 
         const deviceRaw = connectParams.device;
+
+        // Log connectParams for failing test
+        const fs = require("node:fs");
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] CONNECT_PARAMS: hasDevice=${!!deviceRaw}, clientMode=${connectParams.client.mode}, clientId=${connectParams.client.id}\n`,
+        );
+
         let devicePublicKey: string | null = null;
         const hasTokenAuth = Boolean(connectParams.auth?.token);
         const hasPasswordAuth = Boolean(connectParams.auth?.password);
@@ -498,8 +506,22 @@ export function attachGatewayWsMessageHandler(params: {
           });
           close(1008, truncateCloseReason(authMessage));
         };
+
+        // Log device status BEFORE check
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] PRE-DEVICE-CHECK: device=${!!device}, deviceRaw=${!!deviceRaw}, authOk=${authOk}, sharedAuthOk=${sharedAuthOk}\n`,
+        );
+
         if (!device) {
           const canSkipDevice = sharedAuthOk;
+
+          // Debug logging for device identity check
+          const fs = require("node:fs");
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] DEVICE CHECK: device=${!!device}, sharedAuthOk=${sharedAuthOk}, canSkipDevice=${canSkipDevice}, authOk=${authOk}, hasSharedAuth=${hasSharedAuth}, isControlUi=${isControlUi}, allowControlUiBypass=${allowControlUiBypass}\n`,
+          );
 
           if (isControlUi && !allowControlUiBypass) {
             const errorMessage = "control ui requires HTTPS or localhost (secure context)";
@@ -522,10 +544,25 @@ export function attachGatewayWsMessageHandler(params: {
 
           // Allow shared-secret authenticated connections (e.g., control-ui) to skip device identity
           if (!canSkipDevice) {
+            const fs = require("node:fs");
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] REJECT PATH: canSkipDevice=false, about to check authOk=${authOk} && hasSharedAuth=${hasSharedAuth}\n`,
+            );
+
             if (!authOk && hasSharedAuth) {
+              fs.appendFileSync(
+                "/tmp/openclaw-auth-debug.log",
+                `[${new Date().toISOString()}] REJECT: unauthorized (authOk=false, hasSharedAuth=true)\n`,
+              );
               rejectUnauthorized(authResult);
               return;
             }
+
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] REJECT: device-required\n`,
+            );
             setHandshakeState("failed");
             setCloseCause("device-required", {
               client: connectParams.client.id,
@@ -539,13 +576,29 @@ export function attachGatewayWsMessageHandler(params: {
               ok: false,
               error: errorShape(ErrorCodes.NOT_PAIRED, "device identity required"),
             });
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] SENT ERROR: ok=false, code=${ErrorCodes.NOT_PAIRED}, msg="device identity required"\n`,
+            );
             close(1008, "device identity required");
             return;
           }
         }
         if (device) {
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] DEVICE VALIDATION START: deviceId=${device.id}, hasPublicKey=${!!device.publicKey}, hasSignature=${!!device.signature}, signedAt=${device.signedAt}, nonce=${device.nonce}\n`,
+          );
           const derivedId = deriveDeviceIdFromPublicKey(device.publicKey);
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] DERIVE CHECK: derivedId=${derivedId}, deviceId=${device.id}, match=${derivedId === device.id}\n`,
+          );
           if (!derivedId || derivedId !== device.id) {
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] REJECT: device-id-mismatch (derivedId=${derivedId}, deviceId=${device.id})\n`,
+            );
             setHandshakeState("failed");
             setCloseCause("device-auth-invalid", {
               reason: "device-id-mismatch",
@@ -562,10 +615,20 @@ export function attachGatewayWsMessageHandler(params: {
             return;
           }
           const signedAt = device.signedAt;
+          const signedAtType = typeof signedAt;
+          const timeDiff = typeof signedAt === "number" ? Math.abs(Date.now() - signedAt) : null;
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] TIMESTAMP CHECK: signedAtType=${signedAtType}, signedAt=${signedAt}, timeDiff=${timeDiff}, maxSkew=${DEVICE_SIGNATURE_SKEW_MS}\n`,
+          );
           if (
             typeof signedAt !== "number" ||
             Math.abs(Date.now() - signedAt) > DEVICE_SIGNATURE_SKEW_MS
           ) {
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] REJECT: device-signature-stale (signedAt=${signedAt}, timeDiff=${timeDiff})\n`,
+            );
             setHandshakeState("failed");
             setCloseCause("device-auth-invalid", {
               reason: "device-signature-stale",
@@ -583,7 +646,15 @@ export function attachGatewayWsMessageHandler(params: {
           }
           const nonceRequired = !isLocalClient;
           const providedNonce = typeof device.nonce === "string" ? device.nonce.trim() : "";
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] NONCE CHECK: nonceRequired=${nonceRequired}, isLocalClient=${isLocalClient}, providedNonce=${providedNonce}, connectNonce=${connectNonce}\n`,
+          );
           if (nonceRequired && !providedNonce) {
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] REJECT: device-nonce-missing\n`,
+            );
             setHandshakeState("failed");
             setCloseCause("device-auth-invalid", {
               reason: "device-nonce-missing",
@@ -600,6 +671,10 @@ export function attachGatewayWsMessageHandler(params: {
             return;
           }
           if (providedNonce && providedNonce !== connectNonce) {
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] REJECT: device-nonce-mismatch (provided=${providedNonce}, expected=${connectNonce})\n`,
+            );
             setHandshakeState("failed");
             setCloseCause("device-auth-invalid", {
               reason: "device-nonce-mismatch",
@@ -615,6 +690,10 @@ export function attachGatewayWsMessageHandler(params: {
             close(1008, "device nonce mismatch");
             return;
           }
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] BUILDING PAYLOAD: providedNonce=${providedNonce}, version=${providedNonce ? "v2" : "v1"}\n`,
+          );
           const payload = buildDeviceAuthPayload({
             deviceId: device.id,
             clientId: connectParams.client.id,
@@ -626,9 +705,21 @@ export function attachGatewayWsMessageHandler(params: {
             nonce: providedNonce || undefined,
             version: providedNonce ? "v2" : "v1",
           });
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] SIGNATURE VERIFY START: version=${providedNonce ? "v2" : "v1"}, role=${role}, scopes=${JSON.stringify(scopes)}\n`,
+          );
           const signatureOk = verifyDeviceSignature(device.publicKey, payload, device.signature);
           const allowLegacy = !nonceRequired && !providedNonce;
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] SIGNATURE VERIFY RESULT: signatureOk=${signatureOk}, allowLegacy=${allowLegacy}\n`,
+          );
           if (!signatureOk && allowLegacy) {
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] TRYING LEGACY SIGNATURE (v1 without nonce)\n`,
+            );
             const legacyPayload = buildDeviceAuthPayload({
               deviceId: device.id,
               clientId: connectParams.client.id,
@@ -639,9 +730,26 @@ export function attachGatewayWsMessageHandler(params: {
               token: connectParams.auth?.token ?? null,
               version: "v1",
             });
-            if (verifyDeviceSignature(device.publicKey, legacyPayload, device.signature)) {
+            const legacyOk = verifyDeviceSignature(
+              device.publicKey,
+              legacyPayload,
+              device.signature,
+            );
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] LEGACY SIGNATURE RESULT: legacyOk=${legacyOk}\n`,
+            );
+            if (legacyOk) {
               // accepted legacy loopback signature
+              fs.appendFileSync(
+                "/tmp/openclaw-auth-debug.log",
+                `[${new Date().toISOString()}] ACCEPTED LEGACY SIGNATURE\n`,
+              );
             } else {
+              fs.appendFileSync(
+                "/tmp/openclaw-auth-debug.log",
+                `[${new Date().toISOString()}] REJECT: device-signature-invalid (both v2 and legacy v1 failed)\n`,
+              );
               setHandshakeState("failed");
               setCloseCause("device-auth-invalid", {
                 reason: "device-signature",
@@ -658,6 +766,10 @@ export function attachGatewayWsMessageHandler(params: {
               return;
             }
           } else if (!signatureOk) {
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] REJECT: device-signature-invalid (no legacy allowed)\n`,
+            );
             setHandshakeState("failed");
             setCloseCause("device-auth-invalid", {
               reason: "device-signature",
@@ -673,8 +785,20 @@ export function attachGatewayWsMessageHandler(params: {
             close(1008, "device signature invalid");
             return;
           }
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] NORMALIZING PUBLIC KEY\n`,
+          );
           devicePublicKey = normalizeDevicePublicKeyBase64Url(device.publicKey);
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] PUBLIC KEY NORMALIZED: devicePublicKey=${devicePublicKey ? "valid" : "null"}\n`,
+          );
           if (!devicePublicKey) {
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] REJECT: device-public-key-invalid\n`,
+            );
             setHandshakeState("failed");
             setCloseCause("device-auth-invalid", {
               reason: "device-public-key",
@@ -690,6 +814,10 @@ export function attachGatewayWsMessageHandler(params: {
             close(1008, "device public key invalid");
             return;
           }
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] DEVICE VALIDATION COMPLETE - all checks passed\n`,
+          );
         }
 
         if (!authOk && connectParams.auth?.token && device) {
@@ -722,13 +850,33 @@ export function attachGatewayWsMessageHandler(params: {
           }
         }
         if (!authOk) {
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] REJECT: authOk=false after all checks\n`,
+          );
           rejectUnauthorized(authResult);
           return;
         }
 
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] POST-AUTH: authOk=true, authMethod=${authMethod}\n`,
+        );
         const skipPairing = allowControlUiBypass && sharedAuthOk;
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] PAIRING CHECK: device=${!!device}, devicePublicKey=${!!devicePublicKey}, skipPairing=${skipPairing}, allowControlUiBypass=${allowControlUiBypass}, sharedAuthOk=${sharedAuthOk}\n`,
+        );
         if (device && devicePublicKey && !skipPairing) {
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] ENTERING PAIRING BLOCK\n`,
+          );
           const requirePairing = async (reason: string, _paired?: { deviceId: string }) => {
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] REQUESTING PAIRING: reason=${reason}, isLocalClient=${isLocalClient}\n`,
+            );
             const pairing = await requestDevicePairing({
               deviceId: device.id,
               publicKey: devicePublicKey,
@@ -742,8 +890,20 @@ export function attachGatewayWsMessageHandler(params: {
               silent: isLocalClient,
             });
             const context = buildRequestContext();
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] PAIRING REQUESTED: silent=${pairing.request.silent}, created=${pairing.created}\n`,
+            );
             if (pairing.request.silent === true) {
+              fs.appendFileSync(
+                "/tmp/openclaw-auth-debug.log",
+                `[${new Date().toISOString()}] SILENT MODE - calling approveDevicePairing\n`,
+              );
               const approved = await approveDevicePairing(pairing.request.requestId);
+              fs.appendFileSync(
+                "/tmp/openclaw-auth-debug.log",
+                `[${new Date().toISOString()}] APPROVAL RESULT: approved=${!!approved}, deviceId=${approved?.device?.deviceId}\n`,
+              );
               if (approved) {
                 logGateway.info(
                   `device pairing auto-approved device=${approved.device.deviceId} role=${approved.device.role ?? "unknown"}`,
@@ -762,6 +922,10 @@ export function attachGatewayWsMessageHandler(params: {
             } else if (pairing.created) {
               context.broadcast("device.pair.requested", pairing.request, { dropIfSlow: true });
             }
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] REJECTION CHECK: silent=${pairing.request.silent}, will_reject=${pairing.request.silent !== true}\n`,
+            );
             if (pairing.request.silent !== true) {
               setHandshakeState("failed");
               setCloseCause("pairing-required", {
@@ -785,12 +949,36 @@ export function attachGatewayWsMessageHandler(params: {
 
           const paired = await getPairedDevice(device.id);
           const isPaired = paired?.publicKey === devicePublicKey;
+          fs.appendFileSync(
+            "/tmp/openclaw-auth-debug.log",
+            `[${new Date().toISOString()}] PAIRING STATUS: paired=${!!paired}, isPaired=${isPaired}, pairedPublicKey=${paired?.publicKey?.substring(0, 20)}..., devicePublicKey=${devicePublicKey?.substring(0, 20)}...\n`,
+          );
           if (!isPaired) {
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] NOT PAIRED - calling requirePairing\n`,
+            );
             const ok = await requirePairing("not-paired");
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] REQUIRE_PAIRING RETURNED: ok=${ok}\n`,
+            );
             if (!ok) {
+              fs.appendFileSync(
+                "/tmp/openclaw-auth-debug.log",
+                `[${new Date().toISOString()}] PAIRING FAILED - returning early\n`,
+              );
               return;
             }
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] PAIRING SUCCEEDED - continuing to post-pairing flow\n`,
+            );
           } else {
+            fs.appendFileSync(
+              "/tmp/openclaw-auth-debug.log",
+              `[${new Date().toISOString()}] ALREADY_PAIRED - entering role/scope validation\n`,
+            );
             const allowedRoles = new Set(
               Array.isArray(paired.roles) ? paired.roles : paired.role ? [paired.role] : [],
             );
@@ -837,9 +1025,17 @@ export function attachGatewayWsMessageHandler(params: {
           }
         }
 
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] POST_PAIRING: calling ensureDeviceToken, device=${!!device}, deviceId=${device?.id}\n`,
+        );
         const deviceToken = device
           ? await ensureDeviceToken({ deviceId: device.id, role, scopes })
           : null;
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] DEVICE_TOKEN: created=${!!deviceToken}, token=${deviceToken?.token.substring(0, 16)}...\n`,
+        );
 
         if (role === "node") {
           const cfg = loadConfig();
@@ -854,10 +1050,18 @@ export function attachGatewayWsMessageHandler(params: {
           connectParams.commands = filtered;
         }
 
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] PRESENCE_SETUP: starting presence tracking setup\n`,
+        );
         const shouldTrackPresence = !isGatewayCliClient(connectParams.client);
         const clientId = connectParams.client.id;
         const instanceId = connectParams.client.instanceId;
         const presenceKey = shouldTrackPresence ? (device?.id ?? instanceId ?? connId) : undefined;
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] PRESENCE_SETUP: shouldTrack=${shouldTrackPresence}, presenceKey=${presenceKey}\n`,
+        );
 
         logWs("in", "connect", {
           connId,
@@ -894,12 +1098,20 @@ export function attachGatewayWsMessageHandler(params: {
           incrementPresenceVersion();
         }
 
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] RESPONSE_BUILD: building hello-ok response\n`,
+        );
         const snapshot = buildGatewaySnapshot();
         const cachedHealth = getHealthCache();
         if (cachedHealth) {
           snapshot.health = cachedHealth;
           snapshot.stateVersion.health = getHealthVersion();
         }
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] RESPONSE_BUILD: snapshot built, has_health=${!!cachedHealth}\n`,
+        );
         const helloOk = {
           type: "hello-ok",
           protocol: PROTOCOL_VERSION,
@@ -926,8 +1138,16 @@ export function attachGatewayWsMessageHandler(params: {
             tickIntervalMs: TICK_INTERVAL_MS,
           },
         };
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] RESPONSE_READY: hello-ok built, has_deviceToken=${!!deviceToken}, about to send\n`,
+        );
 
         clearHandshakeTimer();
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] CONNECTION_SETUP: setting client state\n`,
+        );
         const nextClient: GatewayWsClient = {
           socket,
           connect: connectParams,
@@ -995,7 +1215,15 @@ export function attachGatewayWsMessageHandler(params: {
           stateVersion: snapshot.stateVersion.presence,
         });
 
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] SENDING_RESPONSE: about to send hello-ok with ok=true\n`,
+        );
         send({ type: "res", id: frame.id, ok: true, payload: helloOk });
+        fs.appendFileSync(
+          "/tmp/openclaw-auth-debug.log",
+          `[${new Date().toISOString()}] RESPONSE_SENT: hello-ok sent successfully\n`,
+        );
         void refreshGatewayHealthSnapshot({ probe: true }).catch((err) =>
           logHealth.error(`post-connect health refresh failed: ${formatError(err)}`),
         );

@@ -19,6 +19,8 @@ import { createSessionsSendTool } from "./tools/sessions-send-tool.js";
 import { createSessionsSpawnTool } from "./tools/sessions-spawn-tool.js";
 import { createTtsTool } from "./tools/tts-tool.js";
 import { createWebFetchTool, createWebSearchTool } from "./tools/web-tools.js";
+import { createTulsbotDelegateTool } from "./tulsbot/delegate-tool.js";
+import { createTulsbotRefreshKnowledgeTool } from "./tulsbot/refresh-knowledge-tool.js";
 
 export function createOpenClawTools(options?: {
   sandboxBrowserBridgeUrl?: string;
@@ -69,6 +71,18 @@ export function createOpenClawTools(options?: {
             ? { root: options.sandboxRoot, bridge: options.sandboxFsBridge }
             : undefined,
         modelHasVision: options?.modelHasVision,
+      })
+    : null;
+  const tulsbotDelegateTool = options?.agentSessionKey?.includes("tulsbot")
+    ? createTulsbotDelegateTool({
+        config: options?.config,
+        agentSessionKey: options?.agentSessionKey,
+      })
+    : null;
+  const tulsbotRefreshKnowledgeTool = options?.agentSessionKey?.includes("tulsbot")
+    ? createTulsbotRefreshKnowledgeTool({
+        config: options?.config,
+        agentSessionKey: options?.agentSessionKey,
       })
     : null;
   const webSearchTool = createWebSearchTool({
@@ -151,6 +165,8 @@ export function createOpenClawTools(options?: {
     ...(webSearchTool ? [webSearchTool] : []),
     ...(webFetchTool ? [webFetchTool] : []),
     ...(imageTool ? [imageTool] : []),
+    ...(tulsbotDelegateTool ? [tulsbotDelegateTool] : []),
+    ...(tulsbotRefreshKnowledgeTool ? [tulsbotRefreshKnowledgeTool] : []),
   ];
 
   const pluginTools = resolvePluginTools({

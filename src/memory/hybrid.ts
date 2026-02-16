@@ -29,8 +29,8 @@ export function buildFtsQuery(raw: string): string | null {
   if (tokens.length === 0) {
     return null;
   }
-  const quoted = tokens.map((t) => `"${t.replaceAll('"', "")}"`);
-  return quoted.join(" AND ");
+  // FTS5 MATCH syntax doesn't need quoted tokens - they're interpreted literally
+  return tokens.join(" OR ");
 }
 
 export function bm25RankToScore(rank: number): number {

@@ -140,7 +140,7 @@ export class AcpGatewayAgent implements Agent {
       opts: this.opts,
     });
 
-    const session = this.sessionStore.createSession({
+    const session = await this.sessionStore.createSession({
       sessionId,
       sessionKey,
       cwd: params.cwd,
@@ -169,7 +169,7 @@ export class AcpGatewayAgent implements Agent {
       opts: this.opts,
     });
 
-    const session = this.sessionStore.createSession({
+    const session = await this.sessionStore.createSession({
       sessionId: params.sessionId,
       sessionKey,
       cwd: params.cwd,

@@ -1,8 +1,17 @@
 import { randomUUID } from "node:crypto";
+import type { OpenClawConfig } from "../config/config.js";
 import type { AcpSession } from "./types.js";
+import { resolveSessionAgentId } from "../agents/agent-scope.js";
+import { getCachedKnowledge } from "../agents/tulsbot/knowledge-loader.js";
+import { getMemorySearchManager } from "../memory/index.js";
 
 export type AcpSessionStore = {
-  createSession: (params: { sessionKey: string; cwd: string; sessionId?: string }) => AcpSession;
+  createSession: (params: {
+    sessionKey: string;
+    cwd: string;
+    sessionId?: string;
+    config?: OpenClawConfig;
+  }) => Promise<AcpSession>;
   getSession: (sessionId: string) => AcpSession | undefined;
   getSessionByRunId: (runId: string) => AcpSession | undefined;
   setActiveRun: (sessionId: string, runId: string, abortController: AbortController) => void;
@@ -15,7 +24,7 @@ export function createInMemorySessionStore(): AcpSessionStore {
   const sessions = new Map<string, AcpSession>();
   const runIdToSessionId = new Map<string, string>();
 
-  const createSession: AcpSessionStore["createSession"] = (params) => {
+  const createSession: AcpSessionStore["createSession"] = async (params) => {
     const sessionId = params.sessionId ?? randomUUID();
     const session: AcpSession = {
       sessionId,
@@ -25,6 +34,56 @@ export function createInMemorySessionStore(): AcpSessionStore {
       abortController: null,
       activeRunId: null,
     };
+
+    // Special initialization for Tulsbot sessions
+    if (params.sessionKey.startsWith("agent:tulsbot:") && params.config) {
+      try {
+        // Load Tulsbot knowledge base (17 sub-agents)
+        const knowledge = await getCachedKnowledge();
+
+        // Query memory for Tulsbot capabilities and context
+        const agentId = resolveSessionAgentId({
+          sessionKey: params.sessionKey,
+          config: params.config,
+        });
+
+        const { manager } = await getMemorySearchManager({
+          cfg: params.config,
+          agentId,
+        });
+
+        let memoryContext: any = null;
+        if (manager) {
+          try {
+            const results = await manager.search("tulsbot capabilities and sub-agent roster", {
+              maxResults: 10,
+              namespace: "tulsbot",
+            });
+            memoryContext = results;
+          } catch (err) {
+            // Memory query failed - continue without memory context
+            console.warn("Failed to query Tulsbot memory context:", err);
+          }
+        }
+
+        // Populate session with Tulsbot context
+        session.systemContext = {
+          knowledgeBase: knowledge,
+          memoryContext,
+          subAgentRoster: knowledge.agents,
+        };
+
+        session.metadata = {
+          activeSubAgent: "Orchestrator", // Default to Orchestrator
+          knowledgeVersion: knowledge.version,
+          workingMemory: [],
+        };
+      } catch (err) {
+        // Knowledge loading failed - continue with basic session
+        console.error("Failed to initialize Tulsbot session context:", err);
+      }
+    }
+
     sessions.set(sessionId, session);
     return session;
   };

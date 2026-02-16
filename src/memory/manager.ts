@@ -40,6 +40,7 @@ import {
   type OpenAiEmbeddingClient,
   type VoyageEmbeddingClient,
 } from "./embeddings.js";
+import { parseFrontmatter } from "./frontmatter.js";
 import { bm25RankToScore, buildFtsQuery, mergeHybridResults } from "./hybrid.js";
 import {
   buildFileEntry,
@@ -269,6 +270,7 @@ export class MemoryIndexManager implements MemorySearchManager {
       maxResults?: number;
       minScore?: number;
       sessionKey?: string;
+      namespace?: string;
     },
   ): Promise<MemorySearchResult[]> {
     void this.warmSession(opts?.sessionKey);
@@ -283,6 +285,7 @@ export class MemoryIndexManager implements MemorySearchManager {
     }
     const minScore = opts?.minScore ?? this.settings.query.minScore;
     const maxResults = opts?.maxResults ?? this.settings.query.maxResults;
+    const namespace = opts?.namespace;
     const hybrid = this.settings.query.hybrid;
     const candidates = Math.min(
       200,
@@ -290,13 +293,13 @@ export class MemoryIndexManager implements MemorySearchManager {
     );
 
     const keywordResults = hybrid.enabled
-      ? await this.searchKeyword(cleaned, candidates).catch(() => [])
+      ? await this.searchKeyword(cleaned, candidates, namespace).catch(() => [])
       : [];
 
     const queryVec = await this.embedQueryWithTimeout(cleaned);
     const hasVector = queryVec.some((v) => v !== 0);
     const vectorResults = hasVector
-      ? await this.searchVector(queryVec, candidates).catch(() => [])
+      ? await this.searchVector(queryVec, candidates, namespace).catch(() => [])
       : [];
 
     if (!hybrid.enabled) {
@@ -316,6 +319,7 @@ export class MemoryIndexManager implements MemorySearchManager {
   private async searchVector(
     queryVec: number[],
     limit: number,
+    namespace?: string,
   ): Promise<Array<MemorySearchResult & { id: string }>> {
     const results = await searchVector({
       db: this.db,
@@ -325,8 +329,8 @@ export class MemoryIndexManager implements MemorySearchManager {
       limit,
       snippetMaxChars: SNIPPET_MAX_CHARS,
       ensureVectorReady: async (dimensions) => await this.ensureVectorReady(dimensions),
-      sourceFilterVec: this.buildSourceFilter("c"),
-      sourceFilterChunks: this.buildSourceFilter(),
+      sourceFilterVec: this.buildSourceFilter("c", namespace),
+      sourceFilterChunks: this.buildSourceFilter(undefined, namespace),
     });
     return results.map((entry) => entry as MemorySearchResult & { id: string });
   }
@@ -338,11 +342,12 @@ export class MemoryIndexManager implements MemorySearchManager {
   private async searchKeyword(
     query: string,
     limit: number,
+    namespace?: string,
   ): Promise<Array<MemorySearchResult & { id: string; textScore: number }>> {
     if (!this.fts.enabled || !this.fts.available) {
       return [];
     }
-    const sourceFilter = this.buildSourceFilter();
+    const sourceFilter = this.buildSourceFilter("c", namespace);
     const results = await searchKeyword({
       db: this.db,
       ftsTable: FTS_TABLE,
@@ -691,14 +696,30 @@ export class MemoryIndexManager implements MemorySearchManager {
     }
   }
 
-  private buildSourceFilter(alias?: string): { sql: string; params: MemorySource[] } {
+  private buildSourceFilter(
+    alias?: string,
+    namespace?: string,
+  ): { sql: string; params: (MemorySource | string)[] } {
     const sources = Array.from(this.sources);
-    if (sources.length === 0) {
-      return { sql: "", params: [] };
+    const params: (MemorySource | string)[] = [];
+    let sql = "";
+
+    // Add source filter if sources exist
+    if (sources.length > 0) {
+      const column = alias ? `${alias}.source` : "source";
+      const placeholders = sources.map(() => "?").join(", ");
+      sql += ` AND ${column} IN (${placeholders})`;
+      params.push(...sources);
     }
-    const column = alias ? `${alias}.source` : "source";
-    const placeholders = sources.map(() => "?").join(", ");
-    return { sql: ` AND ${column} IN (${placeholders})`, params: sources };
+
+    // Add namespace filter if specified
+    if (namespace) {
+      const metadataColumn = alias ? `${alias}.metadata` : "metadata";
+      sql += ` AND json_extract(${metadataColumn}, '$.namespace') = ?`;
+      params.push(namespace);
+    }
+
+    return { sql, params };
   }
 
   private openDatabase(): DatabaseSync {
@@ -796,13 +817,21 @@ export class MemoryIndexManager implements MemorySearchManager {
   }
 
   private ensureSchema() {
+    console.log(
+      "[ensureSchema] Starting - fts.enabled:",
+      this.fts.enabled,
+      "fts.available (before):",
+      this.fts.available,
+    );
     const result = ensureMemoryIndexSchema({
       db: this.db,
       embeddingCacheTable: EMBEDDING_CACHE_TABLE,
       ftsTable: FTS_TABLE,
       ftsEnabled: this.fts.enabled,
     });
+    console.log("[ensureSchema] Result from ensureMemoryIndexSchema:", JSON.stringify(result));
     this.fts.available = result.ftsAvailable;
+    console.log("[ensureSchema] After assignment - fts.available:", this.fts.available);
     if (result.ftsError) {
       this.fts.loadError = result.ftsError;
       log.warn(`fts unavailable: ${result.ftsError}`);
@@ -2199,13 +2228,24 @@ export class MemoryIndexManager implements MemorySearchManager {
     entry: MemoryFileEntry | SessionFileEntry,
     options: { source: MemorySource; content?: string },
   ) {
-    const content = options.content ?? (await fs.readFile(entry.absPath, "utf-8"));
+    const rawContent = options.content ?? (await fs.readFile(entry.absPath, "utf-8"));
+
+    // Parse frontmatter to extract metadata (for Tulsbot NotebookLM imports)
+    const { metadata, content } = parseFrontmatter(rawContent);
+
     const chunks = enforceEmbeddingMaxInputTokens(
       this.provider,
       chunkMarkdown(content, this.settings.chunking).filter(
         (chunk) => chunk.text.trim().length > 0,
       ),
     );
+
+    // Attach metadata to each chunk
+    if (Object.keys(metadata).length > 0) {
+      for (const chunk of chunks) {
+        chunk.metadata = metadata;
+      }
+    }
     if (options.source === "sessions" && "lineMap" in entry) {
       remapChunkLines(chunks, entry.lineMap);
     }
@@ -2242,13 +2282,14 @@ export class MemoryIndexManager implements MemorySearchManager {
       );
       this.db
         .prepare(
-          `INSERT INTO chunks (id, path, source, start_line, end_line, hash, model, text, embedding, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `INSERT INTO chunks (id, path, source, start_line, end_line, hash, model, text, embedding, metadata, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON CONFLICT(id) DO UPDATE SET
              hash=excluded.hash,
              model=excluded.model,
              text=excluded.text,
              embedding=excluded.embedding,
+             metadata=excluded.metadata,
              updated_at=excluded.updated_at`,
         )
         .run(
@@ -2261,6 +2302,7 @@ export class MemoryIndexManager implements MemorySearchManager {
           this.provider.model,
           chunk.text,
           JSON.stringify(embedding),
+          chunk.metadata ? JSON.stringify(chunk.metadata) : null,
           now,
         );
       if (vectorReady && embedding.length > 0) {
@@ -2274,8 +2316,8 @@ export class MemoryIndexManager implements MemorySearchManager {
       if (this.fts.enabled && this.fts.available) {
         this.db
           .prepare(
-            `INSERT INTO ${FTS_TABLE} (text, id, path, source, model, start_line, end_line)\n` +
-              ` VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO ${FTS_TABLE} (text, id, path, source, model, start_line, end_line, metadata)\n` +
+              ` VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
           )
           .run(
             chunk.text,
@@ -2285,6 +2327,7 @@ export class MemoryIndexManager implements MemorySearchManager {
             this.provider.model,
             chunk.startLine,
             chunk.endLine,
+            chunk.metadata ? JSON.stringify(chunk.metadata) : null,
           );
       }
     }

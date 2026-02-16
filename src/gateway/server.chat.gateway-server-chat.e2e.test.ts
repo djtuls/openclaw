@@ -6,6 +6,7 @@ import { WebSocket } from "ws";
 import { emitAgentEvent, registerAgentRunContext } from "../infra/agent-events.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import {
+  agentCommand,
   connectOk,
   getReplyFromConfig,
   installGatewayTestHooks,
@@ -52,13 +53,26 @@ describe("gateway server chat", () => {
     let webchatWs: WebSocket | undefined;
 
     try {
+      // Setup session store before connecting (required for webchat auth)
+      const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-gw-"));
+      tempDirs.push(dir);
+      testState.sessionStorePath = path.join(dir, "sessions.json");
+      await writeSessionStore({
+        entries: {
+          main: {
+            sessionId: "sess-main",
+            updatedAt: Date.now(),
+          },
+        },
+      });
+
       webchatWs = new WebSocket(`ws://127.0.0.1:${port}`);
       await new Promise<void>((resolve) => webchatWs?.once("open", resolve));
       await connectOk(webchatWs, {
         client: {
-          id: GATEWAY_CLIENT_NAMES.CONTROL_UI,
-          version: "dev",
-          platform: "web",
+          id: GATEWAY_CLIENT_NAMES.WEBCHAT,
+          version: "1.0.0",
+          platform: "test",
           mode: GATEWAY_CLIENT_MODES.WEBCHAT,
         },
       });

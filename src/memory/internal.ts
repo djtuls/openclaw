@@ -16,6 +16,7 @@ export type MemoryChunk = {
   endLine: number;
   text: string;
   hash: string;
+  metadata?: Record<string, any>;
 };
 
 export function ensureDir(dir: string): string {

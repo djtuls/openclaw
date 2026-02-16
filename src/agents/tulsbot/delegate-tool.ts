@@ -128,7 +128,7 @@ async function analyzeIntent(
           /(research|coding|notion|memory|planning|analysis|cryptocurrency|social|email|calendar|document|translation|image|audio|task|security|integration)_agent/gi;
 
         for (const result of similarQueries) {
-          const matches = result.text.matchAll(agentPattern);
+          const matches = result.snippet.matchAll(agentPattern);
           for (const match of matches) {
             const agentDomain = match[1].toLowerCase();
             if (!historicalAgents.includes(agentDomain)) {
@@ -284,7 +284,7 @@ async function executeSubAgent(
   // Extract system prompt guidance
   const systemGuidance = agent.systemPrompt || "";
   const capabilities = agent.capabilities || [];
-  const description = (agent.description || "").toLowerCase();
+  const description = String(agent.description ?? "").toLowerCase();
 
   // Domain-specific execution logic
   // Research Domain (TulsCodex)

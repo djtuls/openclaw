@@ -32,7 +32,8 @@ export function ensureMemoryIndexSchema(params: {
       model TEXT NOT NULL,
       text TEXT NOT NULL,
       embedding TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
+      updated_at INTEGER NOT NULL,
+      metadata TEXT
     );
   `);
   params.db.exec(`
@@ -53,8 +54,28 @@ export function ensureMemoryIndexSchema(params: {
 
   let ftsAvailable = false;
   let ftsError: string | undefined;
+  console.log("[ensureMemoryIndexSchema] ftsEnabled:", params.ftsEnabled);
   if (params.ftsEnabled) {
     try {
+      // Check if FTS table needs migration (missing metadata column)
+      const tableInfo = params.db.prepare(`PRAGMA table_info(${params.ftsTable})`).all() as Array<{
+        name: string;
+      }>;
+      const hasMetadataColumn = tableInfo.some((col) => col.name === "metadata");
+      console.log(
+        "[ensureMemoryIndexSchema] tableInfo.length:",
+        tableInfo.length,
+        "hasMetadataColumn:",
+        hasMetadataColumn,
+      );
+
+      if (tableInfo.length > 0 && !hasMetadataColumn) {
+        // Drop old FTS table (cannot ALTER VIRTUAL TABLE)
+        console.log("[ensureMemoryIndexSchema] Dropping old FTS table for migration");
+        params.db.exec(`DROP TABLE IF EXISTS ${params.ftsTable};`);
+      }
+
+      console.log("[ensureMemoryIndexSchema] Creating FTS table");
       params.db.exec(
         `CREATE VIRTUAL TABLE IF NOT EXISTS ${params.ftsTable} USING fts5(\n` +
           `  text,\n` +
@@ -63,10 +84,22 @@ export function ensureMemoryIndexSchema(params: {
           `  source UNINDEXED,\n` +
           `  model UNINDEXED,\n` +
           `  start_line UNINDEXED,\n` +
-          `  end_line UNINDEXED\n` +
+          `  end_line UNINDEXED,\n` +
+          `  metadata UNINDEXED\n` +
           `);`,
       );
+
+      // Repopulate FTS table from chunks after migration
+      if (tableInfo.length > 0 && !hasMetadataColumn) {
+        console.log("[ensureMemoryIndexSchema] Repopulating FTS table after migration");
+        params.db.exec(
+          `INSERT INTO ${params.ftsTable} (text, id, path, source, model, start_line, end_line, metadata)\n` +
+            `SELECT text, id, path, source, model, start_line, end_line, metadata FROM chunks;`,
+        );
+      }
+
       ftsAvailable = true;
+      console.log("[ensureMemoryIndexSchema] FTS creation successful, ftsAvailable set to true");
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       ftsAvailable = false;
@@ -76,8 +109,12 @@ export function ensureMemoryIndexSchema(params: {
 
   ensureColumn(params.db, "files", "source", "TEXT NOT NULL DEFAULT 'memory'");
   ensureColumn(params.db, "chunks", "source", "TEXT NOT NULL DEFAULT 'memory'");
+  ensureColumn(params.db, "chunks", "metadata", "TEXT");
   params.db.exec(`CREATE INDEX IF NOT EXISTS idx_chunks_path ON chunks(path);`);
   params.db.exec(`CREATE INDEX IF NOT EXISTS idx_chunks_source ON chunks(source);`);
+  params.db.exec(
+    `CREATE INDEX IF NOT EXISTS idx_chunks_metadata_namespace ON chunks(json_extract(metadata, '$.namespace'));`,
+  );
 
   return { ftsAvailable, ...(ftsError ? { ftsError } : {}) };
 }
