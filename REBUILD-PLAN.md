@@ -271,19 +271,138 @@ The rebuild is NOT from scratch - this is a **hardening and completion** effort 
 
 ## Immediate Next Actions
 
-### THIS SESSION (Agent 8)
+### THIS SESSION (Agent 1) - Foundation Verification & Phase 1 Completion
 
-1. ✅ Update REBUILD-PLAN.md with current status (THIS PLAN)
-2. 🔄 Fix NotebookLLM script path resolution (re-apply lost fix)
-3. 🔄 Verify A2UI bundle status (check if `assets/a2ui/` exists)
-4. 🔄 Run E2E test to verify it passes
+**Session Focus**: Solidify the foundation by verifying all tests pass, re-applying lost fixes, and preparing for Phase 2 integration work.
 
-### NEXT SESSION (Agent 9)
+#### Priority 1: Foundation Verification (CRITICAL - Do First) ⚡
 
-1. Implement config-driven memory search namespace
-2. Configure gh CLI authentication
-3. Commit all outstanding changes (11 modified + 3 untracked)
-4. Begin Channel Integration Audit (start with Discord + Slack)
+1. ✅ Review and update rebuild plan (THIS TASK)
+2. 🔄 **Run full test suite** to confirm baseline health:
+
+   ```bash
+   pnpm test
+   ```
+
+   - Expected: 300/300 tests passing across 44 files
+   - If failures: Document which tests broke and why
+   - Session archive pattern from Agent 7 as reference
+
+3. 🔄 **Verify E2E integration tests** execute and pass:
+
+   ```bash
+   pnpm test tests/e2e/
+   ```
+
+   - `tulsbot-full-flow.test.ts` (main orchestration test)
+   - `discord-integration.e2e.test.ts` (Discord channel)
+   - `slack-integration.e2e.test.ts` (Slack channel)
+   - `telegram-integration.e2e.test.ts` (UNTRACKED - decide git disposition)
+
+4. 🔄 **Check A2UI bundle status**:
+   ```bash
+   ls -lh assets/a2ui/
+   ```
+
+   - Document if bundle exists and size
+   - If missing: Determine if this blocks any functionality
+   - Update Phase 1 status based on findings
+
+#### Priority 2: NotebookLLM Script Fix (HIGH - Blocks Knowledge Workflow) 🔧
+
+5. 🔄 **Re-apply lost fix** to `scripts/nlm-extract-tulsbot-knowledge.sh`:
+   - **Problem**: Path resolution broke during repo reorganization
+   - **Solution**: Check session archives for documented fix
+   - **Test**: Run script manually to verify knowledge extraction works:
+     ```bash
+     ./scripts/nlm-extract-tulsbot-knowledge.sh
+     ```
+   - **Validation**: Check if `knowledge-slices/` files regenerate successfully
+
+#### Priority 3: Git Hygiene & State Management (MEDIUM) 📦
+
+6. 🔄 **Review and stage verified changes** (11 modified files):
+   - Memory system improvements (`src/memory/hybrid.ts`, `namespace-isolation.test.ts`)
+   - Test fixes (`src/acp/session.test.ts`, `extensions/lobster/src/lobster-tool.test.ts`)
+   - Session enhancements (`src/acp/session.ts`)
+   - Config updates (`src/config/zod-schema.agent-runtime.ts`)
+   - Tulsbot integration (`src/agents/tulsbot/delegate-tool.ts`, `src/agents/memory-search.ts`)
+   - Build config (`vitest.config.ts`)
+   - Documentation (`README.md`)
+
+7. 🔄 **Decide disposition of untracked files**:
+   - ✅ `knowledge-slices/` (4 files, 66.7KB) → **COMMIT** (generated artifacts)
+   - ✅ `REBUILD-PLAN.md` → **COMMIT** (critical planning doc)
+   - ⚠️ `sessions/` (8 archives) → **KEEP UNTRACKED** or add to `.gitignore` (session history)
+   - ❓ `tests/e2e/telegram-integration.e2e.test.ts` → **COMMIT IF VERIFIED** (untracked test)
+   - ❓ `docs/gh-cli-setup.md` → **COMMIT** (setup documentation)
+
+8. 🔄 **Create focused commit** (or multiple) with clear messages:
+
+   ```bash
+   git add <verified-files>
+   git commit -m "test(core): fix memory system tests and subprocess lifecycle
+
+   - Fix async/await in session tests
+   - Add process.exit(0) to subprocess test fixtures
+   - Update namespace isolation test assertions
+   - Document subprocess lifecycle pattern in MEMORY.md
+
+   All 300/300 tests now passing (Agent 7 verification)"
+   ```
+
+#### Priority 4: Phase 2 Preparation & Documentation (LOW) 📋
+
+9. 🔄 **Audit config-driven memory search status**:
+   - Read `src/acp/session.ts:52` to verify namespace config reading
+   - Check if any additional config flexibility is needed
+   - Document current implementation vs. Phase 2.2 requirements
+   - Determine if "config-driven" is already complete or needs expansion
+
+10. 🔄 **Create gh CLI auth setup checklist**:
+    - Document required GitHub scopes for PR creation
+    - Create `docs/gh-cli-setup.md` if not exists (or verify existing)
+    - Test PR creation workflow manually (optional, low priority)
+    - Prepare instructions for Agent 2 to implement automation
+
+11. 🔄 **Update Phase 1 status** in this plan:
+    - Change "85% COMPLETE" to actual percentage based on findings
+    - Update task statuses (1.1 ✅, 1.2 ✅ or ⚠️, 1.3 ✅ or ❌)
+    - Document any new blockers discovered
+
+#### Success Criteria for Agent 1 ✅
+
+Before handoff to Agent 2, verify:
+
+- ✅ All core tests passing (300/300 maintained)
+- ✅ E2E tests verified and status documented
+- ✅ NotebookLLM script fix re-applied and tested
+- ✅ A2UI bundle status known (exists or documented as not needed)
+- ✅ Git working directory organized (staged vs untracked clear)
+- ✅ Phase 1 completion percentage updated accurately
+- ✅ Phase 2 prerequisites identified and documented
+
+#### Handoff to Agent 2 📮
+
+**What Agent 2 Should Focus On**:
+
+1. **If Phase 1 at 100%**: Begin Phase 2 integration hardening
+   - Expand config-driven flexibility if gaps found
+   - Set up gh CLI authentication for automated PRs
+   - Start multi-channel integration audit (Discord, Slack priority)
+
+2. **If Phase 1 still incomplete**:
+   - Address any remaining Phase 1 blockers discovered
+   - Re-apply any additional lost fixes
+   - Then proceed to Phase 2
+
+**Known Handoff Context**:
+
+- Config-driven memory search: Verify if `session.ts:52` implementation is sufficient
+- Multi-channel testing: Discord, Slack, Telegram E2E tests exist - others need creation
+- Brain sync automation: Already deployed (LaunchAgent running 3x/day)
+
+### NEXT SESSION (Agent 2) - Integration Hardening
 
 ### WITHIN 30 DAYS
 
