@@ -79,7 +79,6 @@ import { slackPlugin } from "../../extensions/slack/src/channel.js";
 // Helper to extract routing from session key
 function resolveSessionAgentId({
   sessionKey,
-  config,
 }: {
   sessionKey: SessionKey;
   config: ResolvedConfig;
@@ -334,7 +333,7 @@ describe("Slack E2E Integration", () => {
       const dmPolicy = slackPlugin.security!.resolveDmPolicy!({
         cfg: mockConfig,
         accountId: "default",
-        account: account as any,
+        account,
       });
 
       expect(dmPolicy.policy).toBe("pairing");
@@ -362,7 +361,7 @@ describe("Slack E2E Integration", () => {
       };
 
       const warnings = slackPlugin.security!.collectWarnings!({
-        account: account as any,
+        account,
         cfg: mockConfig,
       });
 

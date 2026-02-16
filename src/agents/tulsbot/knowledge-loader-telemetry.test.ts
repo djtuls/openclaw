@@ -157,7 +157,7 @@ describe("Knowledge Loader Telemetry", () => {
         return;
       }
 
-      const agent = await findAgentByName(agentNames[0]);
+      const _agent = await findAgentByName(agentNames[0]);
       const dashboard = getTelemetryDashboard();
 
       expect(dashboard.summary.memoryUsageMB).toBeGreaterThan(0);
