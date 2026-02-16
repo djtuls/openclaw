@@ -1,13 +1,13 @@
 # Repository Independence Established
 
 **Date**: 2025-02-16
-**Repository**: djtuls/openclaw (now independent from openclaw/openclaw)
+**Repository**: djtuls/ClawdBot_Tulsbot-2.0 (formerly openclaw, now independent)
 
 ## What We Did
 
 ### 1. Identified Fork Divergence
 
-Your fork `djtuls/openclaw` had accidentally synced with the upstream `openclaw/openclaw` repository, causing your main branch to track the public project instead of your personal work.
+Your fork `djtuls/ClawdBot_Tulsbot-2.0` had accidentally synced with the upstream `openclaw/openclaw` repository, causing your main branch to track the public project instead of your personal work.
 
 **Problem discovered:**
 
@@ -18,7 +18,7 @@ Your fork `djtuls/openclaw` had accidentally synced with the upstream `openclaw/
 
 ### 2. Established Independence
 
-Made `djtuls/openclaw` completely independent from the public openclaw project:
+Made `djtuls/ClawdBot_Tulsbot-2.0` completely independent from the public openclaw project:
 
 ```bash
 # Force-pushed your work to become the new main branch
@@ -38,7 +38,7 @@ git reset --hard origin/main
 
 - ✅ **Independent** from openclaw/openclaw
 - ✅ **Clean structure** - Swabble extracted, Tulsbot config relocated
-- ✅ **Single remote** - only `origin` (djtuls/openclaw)
+- ✅ **Single remote** - only `origin` (djtuls/ClawdBot_Tulsbot-2.0)
 - ✅ **Your work** as the foundation on main branch
 
 **Main branch now contains:**
