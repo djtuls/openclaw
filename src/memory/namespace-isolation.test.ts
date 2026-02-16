@@ -80,6 +80,11 @@ It should be isolated from Tulsbot queries.`,
       workspaceDir: tempDir,
       agents: {
         defaultModel: "gpt-4o-mini",
+        defaults: {
+          // Enable hybrid search with memorySearch config
+          // DEFAULT_HYBRID_ENABLED = true, so minimal config enables it
+          memorySearch: {},
+        },
         list: [
           {
             id: "test-agent",
