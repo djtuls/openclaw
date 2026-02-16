@@ -19,7 +19,9 @@ Built and deployed a complete automation system that keeps ClawdBot (local Anyth
 ## Deliverables
 
 ### 1. Core Sync Script
+
 **File**: `scripts/sync-brain-knowledge.ts` (~380 lines)
+
 - Regenerates 3 brain documents from live project state:
   - `brain/cc-sync-clawdbot-identity.md` — ClawdBot identity, personality, capabilities
   - `brain/cc-sync-project-memory-state.md` — project architecture, phases, build status, environment
@@ -29,14 +31,18 @@ Built and deployed a complete automation system that keeps ClawdBot (local Anyth
 - First production run: 13.3s to generate all 3 documents
 
 ### 2. macOS LaunchAgent
+
 **File**: `scripts/com.openclaw.sync-brain-knowledge.plist`
+
 - Scheduled to run 3 times daily: 9am, 2pm, 9pm
 - `RunAtLoad: true` for immediate first run on service load
 - Uses `StartCalendarInterval` array for multiple daily schedules
 - Logs to `~/.openclaw/logs/brain-knowledge-{stdout,stderr}.log`
 
 ### 3. Service Manager
+
 **File**: `scripts/setup-brain-sync-service.sh` (~150 lines, executable)
+
 - Commands: `install`, `uninstall`, `start`, `stop`, `restart`, `status`, `logs`, `follow`, `run`
 - `status` - check if service is running
 - `logs` - view last 50 lines of output
@@ -45,7 +51,9 @@ Built and deployed a complete automation system that keeps ClawdBot (local Anyth
 - Complete service lifecycle management
 
 ### 4. Documentation
+
 **File**: `docs/PEER-REVIEW-REPORT.md`
+
 - Peer review rebuild plan analysis from previous session
 - Committed alongside automation files
 
@@ -54,14 +62,17 @@ Built and deployed a complete automation system that keeps ClawdBot (local Anyth
 ## Technical Implementation
 
 ### Security Compliance
-All shell operations use `execFileNoThrow` instead of `execSync` to comply with project security hook:
-```typescript
-import { execFileNoThrow } from '../tools/src/shared/shell.js';
 
-const gitLog = await execFileNoThrow('git', ['log', '--oneline', '-10']);
+All shell operations use `execFileNoThrow` instead of `execSync` to comply with project security hook:
+
+```typescript
+import { execFileNoThrow } from "../tools/src/shared/shell.js";
+
+const gitLog = await execFileNoThrow("git", ["log", "--oneline", "-10"]);
 ```
 
 ### LaunchAgent Schedule Configuration
+
 ```xml
 <key>StartCalendarInterval</key>
 <array>
@@ -72,7 +83,9 @@ const gitLog = await execFileNoThrow('git', ['log', '--oneline', '-10']);
 ```
 
 ### Brain Document Format
+
 Each document includes metadata header:
+
 ```markdown
 ---
 Type: [ClawdBot Identity | Project Memory State | Learned Knowledge]
@@ -87,24 +100,29 @@ Created: [ISO timestamp]
 ## Installation & Verification
 
 ### Service Installation
+
 ```bash
 ./scripts/setup-brain-sync-service.sh install
 ```
 
 ### Verification Steps
+
 1. **Check service status**:
+
    ```bash
    ./scripts/setup-brain-sync-service.sh status
    # Should show: ✓ Brain knowledge sync service is running
    ```
 
 2. **View logs**:
+
    ```bash
    ./scripts/setup-brain-sync-service.sh logs
    # Should show successful runs with timing
    ```
 
 3. **Manual trigger** (test without waiting for schedule):
+
    ```bash
    ./scripts/setup-brain-sync-service.sh run
    ```
@@ -119,6 +137,7 @@ Created: [ISO timestamp]
 ## Git Workflow & Fixes
 
 ### Files Committed
+
 - `scripts/sync-brain-knowledge.ts` (new file)
 - `scripts/com.openclaw.sync-brain-knowledge.plist` (new file)
 - `scripts/setup-brain-sync-service.sh` (new file, executable)
@@ -126,7 +145,9 @@ Created: [ISO timestamp]
 - `.gitignore` (modified)
 
 ### Runtime Artifact Exclusion
+
 Added to `.gitignore`:
+
 ```
 # Brain knowledge sync runtime state
 .sync-state.db
@@ -135,6 +156,7 @@ Added to `.gitignore`:
 **Rationale**: `.sync-state.db` is a SQLite database that changes on every sync run. Including it in git would create merge conflicts and bloat history.
 
 ### Commit Details
+
 ```
 Commit: ad8e74765
 Message: feat(scripts): add brain knowledge sync automation and peer review docs
@@ -147,6 +169,7 @@ Checks: ✓ Lint passed, ✓ Format passed
 ## Bug Fixes During Session
 
 ### 1. Duplicate Closing Tags in LaunchAgent Plist
+
 **Issue**: The plist file had duplicate `</dict></plist>` closing tags at lines 59-61.
 
 **Detection**: Caught proactively by reading the file immediately after creation.
@@ -156,6 +179,7 @@ Checks: ✓ Lint passed, ✓ Format passed
 **Root Cause**: Write tool included closing tags twice.
 
 ### 2. `.gitignore` Staging Issue
+
 **Issue**: `.gitignore` showed in both staged and unstaged sections after first `git add`.
 
 **Fix**: Re-ran `git add .gitignore` to capture the append operation that added `.sync-state.db` exclusion.
@@ -165,9 +189,12 @@ Checks: ✓ Lint passed, ✓ Format passed
 ## MEMORY.md Updates
 
 ### Session Archive Entry
+
 Added to **Session Archives** section:
+
 ```markdown
 ### Brain Knowledge Sync Automation - 2026-02-16
+
 - **Status**: ✅ Production (running as macOS LaunchAgent)
 - **Key Deliverables**:
   - `scripts/sync-brain-knowledge.ts` — regenerates 3 brain docs from live project state
@@ -182,11 +209,14 @@ Added to **Session Archives** section:
 ```
 
 ### Operational Notes Section
+
 Added new section for quick operational reference:
+
 ```markdown
 ## Operational Notes
 
 ### Brain Knowledge Sync (3x/day)
+
 - **What it does**: Regenerates 3 AnythingLLM brain docs from live project state
 - **Schedule**: 9am, 2pm, 9pm via macOS LaunchAgent (`com.openclaw.sync-brain-knowledge`)
 - **Quick check**: `./scripts/setup-brain-sync-service.sh status`
@@ -195,6 +225,7 @@ Added new section for quick operational reference:
 - **If broken**: `./scripts/setup-brain-sync-service.sh restart` or reinstall
 
 ### Background Services (macOS LaunchAgents)
+
 - `com.openclaw.sync-brain-knowledge` — brain knowledge sync 3x/day
 - Check all: `launchctl list | grep com.openclaw`
 ```
@@ -223,6 +254,7 @@ This automation completes the project's 3-layer memory system:
 ## Command Reference
 
 ### Service Management
+
 ```bash
 # Install and start
 ./scripts/setup-brain-sync-service.sh install
@@ -250,6 +282,7 @@ This automation completes the project's 3-layer memory system:
 ```
 
 ### Direct Script Execution
+
 ```bash
 # Normal run
 pnpm tsx scripts/sync-brain-knowledge.ts
@@ -272,6 +305,7 @@ tail -f ~/.openclaw/logs/brain-knowledge-stderr.log
 Based on user's explicit request "Please commit all of my changes so we can make a PR", the natural next steps are:
 
 1. **Push branch to remote**:
+
    ```bash
    git push origin tulsbot-core-v1
    ```
@@ -315,17 +349,20 @@ Based on user's explicit request "Please commit all of my changes so we can make
 ## Lessons Learned
 
 ### Technical
+
 1. **LaunchAgent Array Scheduling**: Use `StartCalendarInterval` array for multiple daily runs instead of multiple plist files
 2. **execFileNoThrow Pattern**: Essential for project security compliance - always use instead of `execSync`
 3. **Runtime Artifact Management**: Exclude databases/caches from git early to prevent commit bloat
 4. **Service Management Pattern**: Single shell script with subcommands (install/status/logs/run) provides excellent UX
 
 ### Process
+
 1. **Proactive Bug Detection**: Reading files immediately after creation catches errors before commit
 2. **Operational Documentation**: Adding "Operational Notes" to MEMORY.md provides quick reference for future sessions
 3. **Session Archiving**: Comprehensive archives with timeline, fixes, and lessons learned provide valuable context for future work
 
 ### Automation
+
 1. **3x/Day Frequency**: Balances freshness with resource usage (9am/2pm/9pm covers work hours + evening)
 2. **RunAtLoad**: Ensures immediate first run on service install for verification
 3. **Dry-Run Mode**: Critical for testing and debugging without side effects

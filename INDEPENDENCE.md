@@ -6,15 +6,18 @@
 ## What We Did
 
 ### 1. Identified Fork Divergence
+
 Your fork `djtuls/openclaw` had accidentally synced with the upstream `openclaw/openclaw` repository, causing your main branch to track the public project instead of your personal work.
 
 **Problem discovered:**
+
 - `origin/main` pointed to upstream openclaw/openclaw commits (telegram fixes, cron webhooks, etc.)
 - `tulsbot-core-v1` contained your personal development work
 - No common git history between the branches (11,440+ diverged commits)
 - Unable to create PR because branches had no shared ancestor
 
 ### 2. Established Independence
+
 Made `djtuls/openclaw` completely independent from the public openclaw project:
 
 ```bash
@@ -32,12 +35,14 @@ git reset --hard origin/main
 ### 3. Current State
 
 **Your repository is now:**
+
 - ✅ **Independent** from openclaw/openclaw
 - ✅ **Clean structure** - Swabble extracted, Tulsbot config relocated
 - ✅ **Single remote** - only `origin` (djtuls/openclaw)
 - ✅ **Your work** as the foundation on main branch
 
 **Main branch now contains:**
+
 - Repository reorganization (REORGANIZATION.md)
 - Tulsbot agent framework
 - Knowledge loader with NotebookLLM integration
@@ -48,10 +53,12 @@ git reset --hard origin/main
 ### 4. Branch Status
 
 **Current branches:**
+
 - `main` - Your independent work (latest commit: 7ddac58ec)
 - `tulsbot-core-v1` - Development branch (can be deleted or kept for reference)
 
 **Latest commits on main:**
+
 ```
 7ddac58ec test: add event loop drain timeout for WebSocket operations
 1cbc60e86 refactor: reorganize repository structure for rebuild
@@ -71,11 +78,13 @@ ad8e74765 feat(scripts): add brain knowledge sync automation and peer review doc
 ## What Changed
 
 ### Removed
+
 - `upstream` remote (openclaw/openclaw)
 - Upstream's git history from main branch
 - Any connection to the public openclaw project
 
 ### Kept
+
 - All your development work from tulsbot-core-v1
 - Complete reorganization (Swabble extracted, Tulsbot config relocated)
 - All feature implementations and bug fixes
