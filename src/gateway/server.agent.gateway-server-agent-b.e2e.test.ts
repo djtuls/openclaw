@@ -417,6 +417,9 @@ describe("gateway server agent", () => {
       },
     });
 
+    // Allow event loop to drain WebSocket operations before emitting events
+    await new Promise((r) => setTimeout(r, 10));
+
     registerAgentRunContext("run-auto-1", { sessionKey: "main" });
 
     const finalChatP = onceMessage(
