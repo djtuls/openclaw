@@ -81,9 +81,16 @@ It should be isolated from Tulsbot queries.`,
       agents: {
         defaultModel: "gpt-4o-mini",
         defaults: {
-          // Enable hybrid search with memorySearch config
-          // DEFAULT_HYBRID_ENABLED = true, so minimal config enables it
-          memorySearch: {},
+          // Configure hybrid search to use only FTS since vector is disabled
+          memorySearch: {
+            query: {
+              hybrid: {
+                enabled: true,
+                vectorWeight: 0,
+                textWeight: 1,
+              },
+            },
+          },
         },
         list: [
           {
@@ -295,8 +302,8 @@ It should be isolated from Tulsbot queries.`,
     console.log("Results count:", results.length);
 
     expect(results.length).toBeGreaterThan(0);
-    expect(results[0].text).toContain("Tulsbot");
-    expect(results[0].text).not.toContain("research agent");
+    expect(results[0].snippet).toContain("Tulsbot");
+    expect(results[0].snippet).not.toContain("research agent");
   });
 
   it("should return only research-agent memories when namespace filter is applied", async () => {
@@ -306,8 +313,8 @@ It should be isolated from Tulsbot queries.`,
     });
 
     expect(results.length).toBeGreaterThan(0);
-    expect(results[0].text).toContain("research agent");
-    expect(results[0].text).not.toContain("Tulsbot");
+    expect(results[0].snippet).toContain("research agent");
+    expect(results[0].snippet).not.toContain("sub-agents");
   });
 
   it("should return all memories when no namespace filter is applied", async () => {
@@ -317,7 +324,7 @@ It should be isolated from Tulsbot queries.`,
 
     expect(results.length).toBeGreaterThan(0);
     // Should include results from multiple namespaces
-    const texts = results.map((r) => r.text).join(" ");
+    const texts = results.map((r) => r.snippet).join(" ");
     expect(texts).toContain("memory");
   });
 

@@ -47,6 +47,10 @@ export function createInMemorySessionStore(): AcpSessionStore {
           config: params.config,
         });
 
+        // Resolve namespace from agent config (config-driven approach)
+        const agentConfig = params.config.agents?.list?.find((a) => a.id === agentId);
+        const namespace = agentConfig?.memorySearch?.namespace ?? "tulsbot";
+
         const { manager } = await getMemorySearchManager({
           cfg: params.config,
           agentId,
@@ -57,7 +61,7 @@ export function createInMemorySessionStore(): AcpSessionStore {
           try {
             const results = await manager.search("tulsbot capabilities and sub-agent roster", {
               maxResults: 10,
-              namespace: "tulsbot",
+              namespace,
             });
             memoryContext = results;
           } catch (err) {

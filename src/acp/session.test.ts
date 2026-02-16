@@ -8,8 +8,8 @@ describe("acp session manager", () => {
     store.clearAllSessionsForTest();
   });
 
-  it("tracks active runs and clears on cancel", () => {
-    const session = store.createSession({
+  it("tracks active runs and clears on cancel", async () => {
+    const session = await store.createSession({
       sessionKey: "acp:test",
       cwd: "/tmp",
     });

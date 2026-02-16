@@ -104,6 +104,29 @@ pnpm gateway:watch
 
 Note: `pnpm openclaw ...` runs TypeScript directly (via `tsx`). `pnpm build` produces `dist/` for running via Node / the packaged `openclaw` binary.
 
+## Developer Prerequisites
+
+### GitHub CLI Authentication
+
+The repository uses `gh` CLI for automated PR workflows. Verify authentication status:
+
+```bash
+gh auth status
+```
+
+Expected output should show:
+
+- **Account**: Your GitHub username
+- **Scopes**: `gist`, `read:org`, `repo`, `workflow`
+
+If not authenticated, run:
+
+```bash
+gh auth login
+```
+
+Follow the interactive prompts to authenticate with your GitHub account.
+
 ## Security defaults (DM access)
 
 OpenClaw connects to real messaging surfaces. Treat inbound DMs as **untrusted input**.

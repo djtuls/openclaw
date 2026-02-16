@@ -7,6 +7,7 @@ import { resolveAgentConfig } from "./agent-scope.js";
 
 export type ResolvedMemorySearchConfig = {
   enabled: boolean;
+  namespace: string;
   sources: Array<"memory" | "sessions">;
   extraPaths: string[];
   provider: "openai" | "local" | "gemini" | "voyage" | "auto";
@@ -123,6 +124,7 @@ function mergeConfig(
   agentId: string,
 ): ResolvedMemorySearchConfig {
   const enabled = overrides?.enabled ?? defaults?.enabled ?? true;
+  const namespace = overrides?.namespace ?? defaults?.namespace ?? agentId;
   const sessionMemory =
     overrides?.experimental?.sessionMemory ?? defaults?.experimental?.sessionMemory ?? false;
   const provider = overrides?.provider ?? defaults?.provider ?? "auto";
@@ -254,6 +256,7 @@ function mergeConfig(
   const deltaMessages = clampInt(sync.sessions.deltaMessages, 0, Number.MAX_SAFE_INTEGER);
   return {
     enabled,
+    namespace,
     sources,
     extraPaths,
     provider,

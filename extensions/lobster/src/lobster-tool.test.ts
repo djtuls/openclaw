@@ -27,7 +27,8 @@ async function writeFakeLobsterScript(scriptBody: string, prefix = "openclaw-lob
 async function writeFakeLobster(params: { payload: unknown }) {
   const scriptBody =
     `const payload = ${JSON.stringify(params.payload)};\n` +
-    `process.stdout.write(JSON.stringify(payload));\n`;
+    `process.stdout.write(JSON.stringify(payload));\n` +
+    `process.exit(0);\n`;
   return await writeFakeLobsterScript(scriptBody);
 }
 
@@ -99,7 +100,8 @@ describe("lobster plugin tool", () => {
     const { dir } = await writeFakeLobsterScript(
       `const payload = ${JSON.stringify(payload)};\n` +
         `console.log("noise before json");\n` +
-        `process.stdout.write(JSON.stringify(payload));\n`,
+        `process.stdout.write(JSON.stringify(payload));\n` +
+        `process.exit(0);\n`,
       "openclaw-lobster-plugin-noisy-",
     );
 

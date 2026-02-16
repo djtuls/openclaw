@@ -178,39 +178,8 @@ async function analyzeIntent(
  * Falls back to "Orchestrator" when intent is unclear.
  */
 function matchToSubAgent(intent: IntentAnalysis, agents: TulsbotSubAgent[]): TulsbotSubAgent {
-  // Prioritize agents from historical patterns if available
-  if (intent.historicalAgents && intent.historicalAgents.length > 0) {
-    for (const historicalDomain of intent.historicalAgents) {
-      for (const agent of agents) {
-        const agentName = agent.name.toLowerCase();
-
-        // Match historical domain patterns to agent names
-        if (historicalDomain === "research" && agentName.includes("tulscodex")) {
-          return agent;
-        }
-        if (historicalDomain === "coding" && agentName.includes("tulscodex")) {
-          return agent;
-        }
-        if (historicalDomain === "notion" && agentName.includes("knowledge manager")) {
-          return agent;
-        }
-        if (historicalDomain === "memory" && agentName.includes("memory")) {
-          return agent;
-        }
-        if (
-          historicalDomain === "planning" &&
-          (agentName.includes("pm") || agentName.includes("project"))
-        ) {
-          return agent;
-        }
-        if (historicalDomain === "analysis" && agentName.includes("analyst")) {
-          return agent;
-        }
-      }
-    }
-  }
-
-  // Try to match by agent capabilities or name
+  // PRIORITY 1: Match by primary domain from current query analysis
+  // Explicit intent from the current message takes precedence over historical patterns
   for (const agent of agents) {
     const agentName = agent.name.toLowerCase();
 
@@ -259,6 +228,40 @@ function matchToSubAgent(intent: IntentAnalysis, agents: TulsbotSubAgent[]): Tul
       );
       if (triggerMatch) {
         return agent;
+      }
+    }
+  }
+
+  // PRIORITY 2: Fall back to historical patterns if no domain match found
+  // Historical data provides context but shouldn't override explicit current intent
+  // Only trust historical patterns when confidence is reasonably high (>0.7)
+  if (intent.historicalAgents && intent.historicalAgents.length > 0 && intent.confidence > 0.7) {
+    for (const historicalDomain of intent.historicalAgents) {
+      for (const agent of agents) {
+        const agentName = agent.name.toLowerCase();
+
+        // Match historical domain patterns to agent names
+        if (historicalDomain === "research" && agentName.includes("tulscodex")) {
+          return agent;
+        }
+        if (historicalDomain === "coding" && agentName.includes("tulscodex")) {
+          return agent;
+        }
+        if (historicalDomain === "notion" && agentName.includes("knowledge manager")) {
+          return agent;
+        }
+        if (historicalDomain === "memory" && agentName.includes("memory")) {
+          return agent;
+        }
+        if (
+          historicalDomain === "planning" &&
+          (agentName.includes("pm") || agentName.includes("project"))
+        ) {
+          return agent;
+        }
+        if (historicalDomain === "analysis" && agentName.includes("analyst")) {
+          return agent;
+        }
       }
     }
   }

@@ -19,8 +19,9 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-KNOWLEDGE_JSON="$REPO_ROOT/Tulsbot/.tulsbot/core-app-knowledge.json"
-OUTPUT_DIR="$REPO_ROOT/.local/nlm/tulsbot"
+TULSBOT_ROOT="${TULSBOT_ROOT:-$HOME/Backend_local Macbook/Tulsbot}"
+KNOWLEDGE_JSON="$TULSBOT_ROOT/.tulsbot/core-app-knowledge.json"
+OUTPUT_DIR="$REPO_ROOT/knowledge-slices"
 
 # ── Preflight ──────────────────────────────────────────────────────────────────
 if [ ! -f "$KNOWLEDGE_JSON" ]; then
@@ -44,19 +45,23 @@ echo "  Source: $KNOWLEDGE_JSON"
 echo "  Output: $OUTPUT_DIR/"
 echo ""
 
+# Export variables for Python heredoc
+export KNOWLEDGE_JSON
+export OUTPUT_DIR
+
 python3 << 'PYEOF'
 import json
 import sys
 import os
 import re
 
-REPO_ROOT = os.environ.get("REPO_ROOT", ".")
-KNOWLEDGE_JSON = os.path.join(REPO_ROOT, "Tulsbot", ".tulsbot", "core-app-knowledge.json")
-OUTPUT_DIR = os.path.join(REPO_ROOT, ".local", "nlm", "tulsbot")
+# Use environment variables exported from the shell script
+knowledge_file = os.environ["KNOWLEDGE_JSON"]
+output_dir = os.environ["OUTPUT_DIR"]
 
 # ── Load JSON ──────────────────────────────────────────────────────────────────
 try:
-    with open(KNOWLEDGE_JSON, "r", encoding="utf-8") as f:
+    with open(knowledge_file, "r", encoding="utf-8") as f:
         data = json.load(f)
 except Exception as e:
     print(f"Error reading JSON: {e}", file=sys.stderr)
@@ -260,7 +265,7 @@ slices = {
 }
 
 for filename, content in slices.items():
-    path = os.path.join(OUTPUT_DIR, filename)
+    path = os.path.join(output_dir, filename)
     with open(path, "w", encoding="utf-8") as f:
         f.write(content)
 
