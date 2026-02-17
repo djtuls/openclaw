@@ -76,8 +76,8 @@ function parseBrainFile(fileContent: string, fileName: string): BrainFileMetadat
 /**
  * Parse AnythingLLM conversation markdown file
  */
-function parseConversationFile(fileContent: string, fileName: string): ConversationFile {
-  const lines = fileContent.split("\n");
+function _parseConversationFile(fileContent: string, fileName: string): ConversationFile {
+  const _lines = fileContent.split("\n");
 
   const idMatch = fileContent.match(/# Conversation (.+?)$/m);
   const channelMatch = fileContent.match(/\*\*Channel:\*\*\s*(.+?)$/m);
@@ -151,7 +151,7 @@ async function main() {
 
   const backupDir = path.join(PROJECT_ROOT, "anythingllm-sync-output");
   const brainDir = path.join(backupDir, "brain");
-  const conversationsDir = path.join(backupDir, "conversations");
+  const _conversationsDir = path.join(backupDir, "conversations");
 
   // Determine workspace directory (use ~/.openclaw/workspace or create local test dir)
   const homeDir = process.env.HOME || process.env.USERPROFILE || "";

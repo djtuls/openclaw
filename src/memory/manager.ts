@@ -703,12 +703,9 @@ export class MemoryIndexManager implements MemorySearchManager {
     }
   }
 
-  private buildSourceFilter(
-    alias?: string,
-    namespace?: string,
-  ): { sql: string; params: (MemorySource | string)[] } {
+  private buildSourceFilter(alias?: string, namespace?: string): { sql: string; params: string[] } {
     const sources = Array.from(this.sources);
-    const params: (MemorySource | string)[] = [];
+    const params: string[] = [];
     let sql = "";
 
     // Add source filter if sources exist

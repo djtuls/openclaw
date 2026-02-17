@@ -21,6 +21,7 @@
     "unicorn/require-post-message-target-origin": "off"
   },
   "ignorePatterns": [
+    "apps/desktop/src-tauri/target/",
     "assets/",
     "dist/",
     "docs/_layouts/",

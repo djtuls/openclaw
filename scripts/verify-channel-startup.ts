@@ -20,7 +20,6 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 import { loadConfig } from "../src/config/config-loader.ts";
 import { callGateway } from "../src/gateway/call.ts";
-import { buildGatewayConnectionDetails } from "../src/gateway/connection-details.ts";
 import { resolveGatewayPort } from "../src/gateway/resolve-port.ts";
 import { listChannelPlugins } from "../src/plugins/list-channel-plugins.ts";
 
@@ -200,7 +199,7 @@ async function waitForGatewayReady(port: number, timeoutMs: number): Promise<boo
       });
 
       return true;
-    } catch (err) {
+    } catch {
       // Gateway not ready yet, continue polling
       await delay(pollIntervalMs);
     }
@@ -210,8 +209,8 @@ async function waitForGatewayReady(port: number, timeoutMs: number): Promise<boo
 }
 
 async function verifyChannelStatus(
-  port: number,
-  opts: VerificationOptions,
+  _port: number,
+  _opts: VerificationOptions,
 ): Promise<ChannelStartupResult[]> {
   const results: ChannelStartupResult[] = [];
 

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createInMemorySessionStore } from "./session.js";
 
 const BASE_PARAMS = {

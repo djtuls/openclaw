@@ -20,7 +20,6 @@ import { createTulsbotDelegateTool } from "../../src/agents/tulsbot/delegate-too
 import {
   getCachedKnowledge,
   type TulsbotKnowledge,
-  type TulsbotSubAgent,
 } from "../../src/agents/tulsbot/knowledge-loader.js";
 
 /**
@@ -299,7 +298,7 @@ describe("Tulsbot E2E Full Flow", () => {
   describe("Step 5: Memory search queries with namespace filter", () => {
     it("should query memory with tulsbot namespace filter", async () => {
       const { getMemorySearchManager } = await import("../../src/memory/index.js");
-      const sessionKey = "tulsbot:session-123";
+      const _sessionKey = "tulsbot:session-123";
 
       const result = await getMemorySearchManager({
         cfg: mockConfig,
@@ -770,8 +769,8 @@ describe("Tulsbot E2E Full Flow", () => {
 
       // Run complete flow
       const sessionKey = "tulsbot:perf-test";
-      const agentId = resolveSessionAgentId({ sessionKey, config: mockConfig });
-      const knowledge = await getCachedKnowledge();
+      const _agentId = resolveSessionAgentId({ sessionKey, config: mockConfig });
+      const _knowledge = await getCachedKnowledge();
       const delegateTool = createTulsbotDelegateTool({
         config: mockConfig,
         agentSessionKey: sessionKey,

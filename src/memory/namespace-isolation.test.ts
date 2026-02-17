@@ -18,8 +18,8 @@ vi.mock("./embeddings.js", () => ({
     provider: {
       id: "mock-provider",
       model: "mock-model",
-      embedQuery: async (text: string) => new Array(1536).fill(0),
-      embedBatch: async (texts: string[]) => texts.map(() => new Array(1536).fill(0)),
+      embedQuery: async (_text: string) => Array.from({ length: 1536 }, () => 0),
+      embedBatch: async (texts: string[]) => texts.map(() => Array.from({ length: 1536 }, () => 0)),
     },
     requestedProvider: "openai" as const,
   })),
@@ -150,14 +150,14 @@ It should be isolated from Tulsbot queries.`,
 
   it("should return only Tulsbot memories when namespace filter is applied", async () => {
     // Debug: Check what's actually in the database tables
-    const db = (manager as any).db; // Access private db for debugging
+    const db = (manager as unknown as { db: import("better-sqlite3").Database }).db; // Access private db for debugging
     const chunksData = db.prepare("SELECT id, text, metadata, source, model FROM chunks").all();
     console.log("\n=== Database chunks table ===");
     console.log("Chunks count:", chunksData.length);
-    chunksData.forEach((chunk: any, i: number) => {
+    chunksData.forEach((chunk: Record<string, unknown>, i: number) => {
       console.log(`\nChunk ${i + 1}:`);
-      console.log("  text length:", chunk.text?.length || 0);
-      console.log("  text preview:", chunk.text?.substring(0, 100) || "(empty)");
+      console.log("  text length:", (chunk.text as string)?.length || 0);
+      console.log("  text preview:", (chunk.text as string)?.substring(0, 100) || "(empty)");
       console.log("  metadata:", chunk.metadata);
       console.log("  source:", chunk.source);
       console.log("  model:", chunk.model);
@@ -166,9 +166,9 @@ It should be isolated from Tulsbot queries.`,
     const ftsData = db.prepare("SELECT text, id, model FROM chunks_fts LIMIT 10").all();
     console.log("\n=== FTS table (chunks_fts) ===");
     console.log("FTS rows:", ftsData.length);
-    ftsData.forEach((row: any, i: number) => {
+    ftsData.forEach((row: Record<string, unknown>, i: number) => {
       console.log(`FTS row ${i + 1}:`);
-      console.log("  text:", row.text?.substring(0, 100) || "(empty)");
+      console.log("  text:", (row.text as string)?.substring(0, 100) || "(empty)");
       console.log("  id:", row.id);
       console.log("  model:", row.model);
     });

@@ -166,7 +166,7 @@ async function syncToNotebookLLM(memoryPath: string): Promise<void> {
 
   try {
     // Use execFileNoThrow for safe command execution (prevents command injection)
-    const { stdout, stderr } = await execFileNoThrow("nlm", [
+    const { stderr } = await execFileNoThrow("nlm", [
       "source",
       "add",
       TULSBOT_NOTEBOOK_ID,
@@ -179,15 +179,15 @@ async function syncToNotebookLLM(memoryPath: string): Promise<void> {
     } else {
       console.log(`  ✓ NotebookLLM: ${fileName} uploaded`);
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle common errors gracefully
-    if (error.message?.includes("already exists")) {
+    if ((error as Error).message?.includes("already exists")) {
       console.log(`  ℹ️  NotebookLLM: ${fileName} already exists (skipped)`);
-    } else if (error.message?.includes("not authenticated")) {
+    } else if ((error as Error).message?.includes("not authenticated")) {
       console.error(`  ✗ NotebookLLM auth error. Run: nlm login`);
       throw error;
     } else {
-      console.error(`  ✗ NotebookLLM error for ${fileName}:`, error.message);
+      console.error(`  ✗ NotebookLLM error for ${fileName}:`, (error as Error).message);
       throw error;
     }
   }
@@ -206,8 +206,11 @@ async function syncMemoryFile(
   try {
     await syncToAnythingLLM(memoryPath, brainDir);
     results.anythingllm = true;
-  } catch (error: any) {
-    console.error(`  ✗ AnythingLLM error for ${path.basename(memoryPath)}:`, error.message);
+  } catch (error: unknown) {
+    console.error(
+      `  ✗ AnythingLLM error for ${path.basename(memoryPath)}:`,
+      (error as Error).message,
+    );
   }
 
   // Sync to NotebookLLM (independent of AnythingLLM success)
@@ -215,9 +218,9 @@ async function syncMemoryFile(
     try {
       await syncToNotebookLLM(memoryPath);
       results.notebooklm = true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Error already logged in syncToNotebookLLM
-      if (error.message?.includes("not authenticated")) {
+      if ((error as Error).message?.includes("not authenticated")) {
         // Fatal error, stop sync
         throw error;
       }
@@ -270,13 +273,13 @@ async function syncOnce() {
       if (results.notebooklm) {
         notebookLLMSynced++;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (
-        error.message?.includes("anythingllm-backup") ||
-        error.message?.includes("already exists")
+        (error as Error).message?.includes("anythingllm-backup") ||
+        (error as Error).message?.includes("already exists")
       ) {
         skipped++;
-      } else if (error.message?.includes("not authenticated")) {
+      } else if ((error as Error).message?.includes("not authenticated")) {
         console.error("\n❌ NotebookLLM authentication required. Stopping.");
         console.error("   Run: nlm login\n");
         process.exit(1);
@@ -338,8 +341,8 @@ async function watchMode() {
         console.log(`\n📝 New file: ${path.basename(filePath)}`);
         try {
           await syncMemoryFile(filePath, brainDir);
-        } catch (error: any) {
-          if (error.message?.includes("not authenticated")) {
+        } catch (error: unknown) {
+          if ((error as Error).message?.includes("not authenticated")) {
             console.error("\n❌ NotebookLLM auth lost. Stopping watch mode.");
             console.error("   Run: nlm login\n");
             process.exit(1);
@@ -352,8 +355,8 @@ async function watchMode() {
         console.log(`\n📝 Changed: ${path.basename(filePath)}`);
         try {
           await syncMemoryFile(filePath, brainDir);
-        } catch (error: any) {
-          if (error.message?.includes("not authenticated")) {
+        } catch (error: unknown) {
+          if ((error as Error).message?.includes("not authenticated")) {
             console.error("\n❌ NotebookLLM auth lost. Stopping watch mode.");
             console.error("   Run: nlm login\n");
             process.exit(1);

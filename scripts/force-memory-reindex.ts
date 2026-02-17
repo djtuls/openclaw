@@ -13,7 +13,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { OpenClawConfig } from "../src/types/config.js";
-import { resolveAgentDir, resolveAgentWorkspaceDir } from "../src/agents/agent-scope.js";
 import { MemoryIndexManager } from "../src/memory/manager.js";
 
 async function main() {
@@ -110,11 +109,11 @@ async function main() {
     );
     console.log("   2. Start bidirectional sync (optional):");
     console.log("      pnpm tsx scripts/sync-anythingllm-bidirectional.ts --watch");
-  } catch (error: any) {
-    console.error("\n❌ Reindex failed:", error.message);
-    if (error.stack) {
+  } catch (error: unknown) {
+    console.error("\n❌ Reindex failed:", (error as Error).message);
+    if ((error as Error).stack) {
       console.error("\nStack trace:");
-      console.error(error.stack);
+      console.error((error as Error).stack);
     }
     process.exit(1);
   } finally {

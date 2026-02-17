@@ -20,7 +20,7 @@ import {
 } from "../canvas-host/a2ui.js";
 import { loadConfig } from "../config/config.js";
 import { getCacheStats } from "../metrics/cache-stats.js";
-import { metrics, dumpMetrics } from "../metrics/collector.js";
+import { metrics } from "../metrics/collector.js";
 import { checkRateLimit } from "../middleware/rate-limiter.js";
 import { safeEqualSecret } from "../security/secret-equal.js";
 import { handleSlackHttpRequest } from "../slack/http/index.js";

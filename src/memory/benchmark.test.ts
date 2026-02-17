@@ -21,7 +21,7 @@ import { requireNodeSqlite } from "./sqlite.js";
 
 const RECORD_COUNT = 1000;
 const MODEL = "text-embedding-3-small";
-const EMBEDDING_STUB = JSON.stringify(new Array(16).fill(0.1));
+const EMBEDDING_STUB = JSON.stringify(Array.from({ length: 16 }, () => 0.1));
 
 function makeId(i: number): string {
   return `chunk-${String(i).padStart(6, "0")}`;

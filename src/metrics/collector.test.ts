@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import type { MetricsSnapshot, HistogramStats } from "./collector.js";
+import type { MetricsSnapshot } from "./collector.js";
 import { metrics, dumpMetrics } from "./collector.js";
 
 describe("MetricsCollector", () => {

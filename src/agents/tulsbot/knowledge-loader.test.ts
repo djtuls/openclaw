@@ -227,7 +227,7 @@ describe.skipIf(!knowledgeFileExists)("Tulsbot Knowledge Loader (integration)", 
     });
 
     it("should find agent by partial name match (case-insensitive)", async () => {
-      const knowledge = await getCachedKnowledge();
+      const _knowledge = await getCachedKnowledge();
 
       // Find Orchestrator agent (should be first based on plan)
       const orchestrator = await findAgentByName("orchestrator");

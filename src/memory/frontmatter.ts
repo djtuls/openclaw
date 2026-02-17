@@ -14,7 +14,7 @@
  */
 
 export interface ParsedContent {
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   content: string;
 }
 
@@ -37,7 +37,7 @@ export function parseFrontmatter(rawContent: string): ParsedContent {
   }
 
   const [, frontmatterBlock, content] = match;
-  const metadata: Record<string, any> = {};
+  const metadata: Record<string, unknown> = {};
 
   // Parse simple YAML frontmatter (key: value format)
   const lines = frontmatterBlock.split("\n");

@@ -9,7 +9,7 @@ import { withTempHome } from "./helpers/temp-home.ts";
 describe("Channel Integration E2E", () => {
   describe("Channel Configuration Validation", () => {
     it("should validate all channel plugins are loadable", async () => {
-      await withTempHome(async (home) => {
+      await withTempHome(async (_home) => {
         const plugins = listChannelPlugins();
 
         expect(plugins.length).toBeGreaterThan(0);
@@ -34,7 +34,7 @@ describe("Channel Integration E2E", () => {
     });
 
     it("should create valid config structure for each channel", async () => {
-      await withTempHome(async (home) => {
+      await withTempHome(async (_home) => {
         const plugins = listChannelPlugins();
         const configPath = resolveConfigPath();
         const configDir = path.dirname(configPath);
@@ -75,7 +75,7 @@ describe("Channel Integration E2E", () => {
 
   describe("Channel Account Enumeration", () => {
     it("should enumerate accounts for each channel plugin", async () => {
-      await withTempHome(async (home) => {
+      await withTempHome(async (_home) => {
         const plugins = listChannelPlugins();
         const configPath = resolveConfigPath();
         const configDir = path.dirname(configPath);
@@ -111,7 +111,7 @@ describe("Channel Integration E2E", () => {
     });
 
     it("should handle single account (legacy) config format", async () => {
-      await withTempHome(async (home) => {
+      await withTempHome(async (_home) => {
         const plugins = listChannelPlugins();
         const configPath = resolveConfigPath();
         const configDir = path.dirname(configPath);
@@ -145,7 +145,7 @@ describe("Channel Integration E2E", () => {
   });
 
   describe("Credential Field Validation", () => {
-    const CREDENTIAL_FIELDS = [
+    const _CREDENTIAL_FIELDS = [
       "tokenSource",
       "botTokenSource",
       "appTokenSource",
@@ -153,7 +153,7 @@ describe("Channel Integration E2E", () => {
     ] as const;
 
     it("should validate credential fields for each channel", async () => {
-      await withTempHome(async (home) => {
+      await withTempHome(async (_home) => {
         const plugins = listChannelPlugins();
         const configPath = resolveConfigPath();
         const configDir = path.dirname(configPath);
@@ -221,7 +221,7 @@ describe("Channel Integration E2E", () => {
 
   describe("Config File Persistence", () => {
     it("should persist config changes across reads", async () => {
-      await withTempHome(async (home) => {
+      await withTempHome(async (_home) => {
         const configPath = resolveConfigPath();
         const configDir = path.dirname(configPath);
 
