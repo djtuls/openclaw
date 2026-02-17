@@ -1,5 +1,11 @@
+import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { sanitizeMessage, sanitizeUserId } from "./sanitize.js";
+import {
+  SanitizationError,
+  sanitizeFilePath,
+  sanitizeMessage,
+  sanitizeUserId,
+} from "./sanitize.js";
 
 describe("sanitizeMessage", () => {
   test("returns message unchanged when already clean", () => {
@@ -76,7 +82,8 @@ describe("sanitizeUserId", () => {
 
   test("strips characters outside the allowed set", () => {
     expect(sanitizeUserId("user name")).toBe("username");
-    expect(sanitizeUserId("user@domain.com")).toBe("userdomain");
+    // @ and . are stripped; alphanumeric chars remain
+    expect(sanitizeUserId("user@domain.com")).toBe("userdomaincom");
     expect(sanitizeUserId("hello<world>")).toBe("helloworld");
   });
 
@@ -107,5 +114,69 @@ describe("sanitizeUserId", () => {
 
   test("preserves platform prefix pipe separator", () => {
     expect(sanitizeUserId("telegram|12345678")).toBe("telegram|12345678");
+  });
+});
+
+describe("sanitizeFilePath", () => {
+  const ROOT = "/tmp/project";
+
+  test("returns normalized absolute path inside root", () => {
+    const result = sanitizeFilePath("/tmp/project/src/file.ts", ROOT);
+    expect(result).toBe("/tmp/project/src/file.ts");
+  });
+
+  test("resolves relative path against root", () => {
+    const result = sanitizeFilePath("src/file.ts", ROOT);
+    expect(result).toBe(path.resolve(ROOT, "src/file.ts"));
+  });
+
+  test("throws SanitizationError for empty string", () => {
+    expect(() => sanitizeFilePath("", ROOT)).toThrow(SanitizationError);
+    expect(() => sanitizeFilePath("", ROOT)).toThrow("empty or non-string");
+  });
+
+  test("throws SanitizationError for non-string input", () => {
+    expect(() => sanitizeFilePath(null as unknown as string, ROOT)).toThrow(SanitizationError);
+    expect(() => sanitizeFilePath(undefined as unknown as string, ROOT)).toThrow(SanitizationError);
+  });
+
+  test("throws SanitizationError for path exceeding max length", () => {
+    const longPath = "a/".repeat(260);
+    expect(() => sanitizeFilePath(longPath, ROOT)).toThrow(SanitizationError);
+    expect(() => sanitizeFilePath(longPath, ROOT)).toThrow("exceeds maximum length");
+  });
+
+  test("throws SanitizationError for '../' traversal", () => {
+    expect(() => sanitizeFilePath("../etc/passwd", ROOT)).toThrow(SanitizationError);
+    expect(() => sanitizeFilePath("../etc/passwd", ROOT)).toThrow("path traversal");
+  });
+
+  test("throws SanitizationError for '..' alone", () => {
+    expect(() => sanitizeFilePath("..", ROOT)).toThrow(SanitizationError);
+  });
+
+  test("throws SanitizationError for path ending in '/..'", () => {
+    // implementation rejects paths ending in /.. at string level (conservative)
+    expect(() => sanitizeFilePath("src/..", ROOT)).toThrow(SanitizationError);
+    expect(() => sanitizeFilePath("src/../../outside", ROOT)).toThrow(SanitizationError);
+  });
+
+  test("throws SanitizationError for absolute path outside root", () => {
+    expect(() => sanitizeFilePath("/etc/passwd", ROOT)).toThrow(SanitizationError);
+    expect(() => sanitizeFilePath("/etc/passwd", ROOT)).toThrow("outside project root");
+  });
+
+  test("allows root directory itself as absolute path", () => {
+    const result = sanitizeFilePath(ROOT, ROOT);
+    expect(result).toBe(path.normalize(ROOT));
+  });
+
+  test("SanitizationError has correct name", () => {
+    try {
+      sanitizeFilePath("../escape", ROOT);
+    } catch (e) {
+      expect(e).toBeInstanceOf(SanitizationError);
+      expect((e as SanitizationError).name).toBe("SanitizationError");
+    }
   });
 });
