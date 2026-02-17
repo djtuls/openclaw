@@ -224,6 +224,8 @@ export type AgentToolsConfig = {
 export type MemorySearchConfig = {
   /** Enable vector memory search (default: true). */
   enabled?: boolean;
+  /** Namespace for memory isolation (defaults to agentId). */
+  namespace?: string;
   /** Sources to index and search (default: ["memory"]). */
   sources?: Array<"memory" | "sessions">;
   /** Extra paths to include in memory search (directories or .md files). */

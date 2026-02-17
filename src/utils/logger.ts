@@ -89,7 +89,11 @@ function wrapSubsystem(
   subsystem: SubsystemLogger,
   inheritedBindings: Record<string, unknown> = {},
 ): StructuredLogger {
-  function emit(level: LogLevel, msg: string, context?: Record<string, unknown>): void {
+  function emit(
+    level: Exclude<LogLevel, "silent">,
+    msg: string,
+    context?: Record<string, unknown>,
+  ): void {
     if (!isLevelEnabled(level)) {
       return;
     }
