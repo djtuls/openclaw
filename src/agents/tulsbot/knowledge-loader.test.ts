@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import path from "node:path";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   loadTulsbotKnowledge,
   getCachedKnowledge,
@@ -12,7 +12,8 @@ import {
 
 // Use actual knowledge file for integration tests
 // IMPORTANT: Use absolute path, not relying on HOME which vitest sets to temp directory
-const KNOWLEDGE_FILE_PATH = "/Users/tulioferro/Backend_local Macbook/Tulsbot/.tulsbot/core-app-knowledge.json";
+const KNOWLEDGE_FILE_PATH =
+  "/Users/tulioferro/Backend_local Macbook/Tulsbot/.tulsbot/core-app-knowledge.json";
 
 // Set environment variable for default path resolution in tests
 process.env.TULSBOT_KNOWLEDGE_PATH = KNOWLEDGE_FILE_PATH;
@@ -126,8 +127,8 @@ describe("Tulsbot Knowledge Loader", () => {
 
       expect(names).toBeInstanceOf(Array);
       expect(names.length).toBeGreaterThan(0);
-      expect(names.every(name => typeof name === "string")).toBe(true);
-      expect(names.every(name => name.length > 0)).toBe(true);
+      expect(names.every((name) => typeof name === "string")).toBe(true);
+      expect(names.every((name) => name.length > 0)).toBe(true);
     });
 
     it("should include expected agent types", async () => {

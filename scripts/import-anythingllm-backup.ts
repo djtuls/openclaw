@@ -61,9 +61,7 @@ function parseBrainFile(fileContent: string, fileName: string): BrainFileMetadat
 
   // Extract content (everything after ---)
   const separatorIndex = fileContent.indexOf("\n---\n");
-  const content = separatorIndex >= 0
-    ? fileContent.slice(separatorIndex + 5).trim()
-    : fileContent;
+  const content = separatorIndex >= 0 ? fileContent.slice(separatorIndex + 5).trim() : fileContent;
 
   return {
     title,
@@ -88,9 +86,7 @@ function parseConversationFile(fileContent: string, fileName: string): Conversat
 
   // Extract messages (after ---)
   const separatorIndex = fileContent.indexOf("\n---\n");
-  const messagesContent = separatorIndex >= 0
-    ? fileContent.slice(separatorIndex + 5).trim()
-    : "";
+  const messagesContent = separatorIndex >= 0 ? fileContent.slice(separatorIndex + 5).trim() : "";
 
   // Parse user/assistant message pairs
   const messages: Array<{ role: string; content: string }> = [];
@@ -184,7 +180,10 @@ async function main() {
       const memoryFilePath = path.join(workspaceDir, memoryFileName);
 
       // Check if file already exists (avoid duplicates)
-      const exists = await fs.access(memoryFilePath).then(() => true).catch(() => false);
+      const exists = await fs
+        .access(memoryFilePath)
+        .then(() => true)
+        .catch(() => false);
       if (exists) {
         skipped++;
         continue;

@@ -39,14 +39,14 @@ All notebook IDs are tracked in `.agents/skills/notebooklm/references/notebook-r
 
 ## When to Use Which System
 
-| Need | Use | Why |
-|------|-----|-----|
-| Architecture understanding | NotebookLM (Master) | Grounded codebase snapshot, avoids token-heavy file crawls |
-| Debugging unfamiliar errors | NotebookLM (Debugging) | Curated official docs + community patterns |
-| Security questions | NotebookLM (Security) | OWASP guides, CVE data, hardening best practices |
-| Research on new topics | NotebookLM (temp notebook) | Isolated research context, doesn't pollute main context |
-| Conversation history/memories | AnythingLLM | Local RAG over private data |
-| Quick file lookup | Direct file read | When you know exactly which file you need |
+| Need                          | Use                        | Why                                                        |
+| ----------------------------- | -------------------------- | ---------------------------------------------------------- |
+| Architecture understanding    | NotebookLM (Master)        | Grounded codebase snapshot, avoids token-heavy file crawls |
+| Debugging unfamiliar errors   | NotebookLM (Debugging)     | Curated official docs + community patterns                 |
+| Security questions            | NotebookLM (Security)      | OWASP guides, CVE data, hardening best practices           |
+| Research on new topics        | NotebookLM (temp notebook) | Isolated research context, doesn't pollute main context    |
+| Conversation history/memories | AnythingLLM                | Local RAG over private data                                |
+| Quick file lookup             | Direct file read           | When you know exactly which file you need                  |
 
 ## Query Workflow
 
@@ -79,6 +79,7 @@ scripts/nlm-sync-codebase.sh
 ```
 
 Run this after:
+
 - Major refactors or new modules
 - Significant structural changes
 - Before a release
@@ -91,17 +92,20 @@ The script uses CLI flags for include/exclude rules (the Python repomix version 
 For investigating new topics without polluting your current context:
 
 1. Create a temporary notebook:
+
    ```sh
    scripts/nlm-create-notebooks.sh "Research: <topic>"
    ```
 
 2. Add sources:
+
    ```sh
    nlm source add <notebook-id> --url "https://..."
    nlm source add <notebook-id> --file path/to/doc.pdf
    ```
 
 3. Query findings:
+
    ```sh
    nlm query <notebook-id> "summarize the key findings"
    ```
@@ -120,6 +124,7 @@ Architecture diagrams and mind maps live in `visualizations/`. Check there befor
 To generate new visualizations:
 
 1. Query the master notebook for diagrams:
+
    ```sh
    nlm query notebook "$NLM_MASTER_NOTEBOOK_ID" "Generate a Mermaid diagram of the channel routing system"
    ```
@@ -137,10 +142,10 @@ To generate new visualizations:
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---------|-----|
-| `nlm: command not found` | Install: `uv tool install notebooklm-mcp-cli` |
-| `repomix: command not found` | Install: `uv tool install repomix` |
-| Query returns auth error | Run `nlm login` to re-authenticate |
-| Stale codebase answers | Run `scripts/nlm-sync-codebase.sh` |
-| Notebook not found | Check registry for correct ID: `.agents/skills/notebooklm/references/notebook-registry.md` |
+| Problem                      | Fix                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------ |
+| `nlm: command not found`     | Install: `uv tool install notebooklm-mcp-cli`                                              |
+| `repomix: command not found` | Install: `uv tool install repomix`                                                         |
+| Query returns auth error     | Run `nlm login` to re-authenticate                                                         |
+| Stale codebase answers       | Run `scripts/nlm-sync-codebase.sh`                                                         |
+| Notebook not found           | Check registry for correct ID: `.agents/skills/notebooklm/references/notebook-registry.md` |

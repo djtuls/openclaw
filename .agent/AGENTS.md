@@ -7,6 +7,7 @@ Tulsbot is the autonomous workspace management agent for this repo. It handles a
 ## Domain Scope
 
 Tulsbot owns:
+
 - Workspace management and settings
 - Automation rules, triggers, and workflows
 - Notion API interactions, database schemas, page templates
@@ -15,6 +16,7 @@ Tulsbot owns:
 - Memory and knowledge sync from Notion
 
 Tulsbot does **not** own:
+
 - Codebase development (`src/`, `extensions/`, build systems)
 - Channel connections and protocol handlers
 - CI/CD pipelines and deployment
@@ -24,25 +26,25 @@ Tulsbot does **not** own:
 
 Tulsbot coordinates 17 specialized agents:
 
-| Agent | Role |
-|-------|------|
-| **Orchestrator** | Central coordinator, routes tasks to specialists |
-| **PM Specialist** | Project management, task tracking, sprint planning |
-| **Memory Heartbeat** | Periodic knowledge sync, workspace state snapshots |
-| **Intelligence Router** | Intent classification, query routing |
-| **License Control** | License management, compliance tracking |
-| **Content Curator** | Content organization, tagging, metadata enrichment |
-| **Analytics Engine** | Workspace analytics, usage patterns, reporting |
+| Agent                    | Role                                                       |
+| ------------------------ | ---------------------------------------------------------- |
+| **Orchestrator**         | Central coordinator, routes tasks to specialists           |
+| **PM Specialist**        | Project management, task tracking, sprint planning         |
+| **Memory Heartbeat**     | Periodic knowledge sync, workspace state snapshots         |
+| **Intelligence Router**  | Intent classification, query routing                       |
+| **License Control**      | License management, compliance tracking                    |
+| **Content Curator**      | Content organization, tagging, metadata enrichment         |
+| **Analytics Engine**     | Workspace analytics, usage patterns, reporting             |
 | **Notification Manager** | Alert routing, notification preferences, digest scheduling |
-| **Template Engine** | Page/database template management, creation automation |
-| **Integration Bridge** | External service connections, webhook management |
-| **Search Indexer** | Workspace search optimization, index maintenance |
-| **Workflow Automator** | Automation rule execution, trigger management |
-| **Quality Assurance** | Data validation, consistency checks, cleanup |
-| **Access Controller** | Permission management, role-based access |
-| **Backup Manager** | Workspace backup, snapshot management |
-| **Migration Assistant** | Data migration, schema evolution, version upgrades |
-| **Debug Inspector** | Automation debugging, error trace analysis |
+| **Template Engine**      | Page/database template management, creation automation     |
+| **Integration Bridge**   | External service connections, webhook management           |
+| **Search Indexer**       | Workspace search optimization, index maintenance           |
+| **Workflow Automator**   | Automation rule execution, trigger management              |
+| **Quality Assurance**    | Data validation, consistency checks, cleanup               |
+| **Access Controller**    | Permission management, role-based access                   |
+| **Backup Manager**       | Workspace backup, snapshot management                      |
+| **Migration Assistant**  | Data migration, schema evolution, version upgrades         |
+| **Debug Inspector**      | Automation debugging, error trace analysis                 |
 
 Agent definitions are sourced from `Tulsbot/.tulsbot/core-app-knowledge.json`.
 
@@ -50,11 +52,11 @@ Agent definitions are sourced from `Tulsbot/.tulsbot/core-app-knowledge.json`.
 
 Tulsbot has 3 dedicated NotebookLM notebooks (separate from OpenClaw's 3):
 
-| Notebook | Purpose | Query for... |
-|----------|---------|-------------|
-| **Tulsbot Master** | Workspace architecture, agent roster, core knowledge | Agent capabilities, workspace structure, automation patterns |
-| **Tulsbot Operations** | Workflow debugging, automation troubleshooting | Error diagnosis, automation failures, sub-agent coordination |
-| **Tulsbot Notion** | Notion API patterns, database schemas, templates | Database schemas, API usage, page templates, sync workflows |
+| Notebook               | Purpose                                              | Query for...                                                 |
+| ---------------------- | ---------------------------------------------------- | ------------------------------------------------------------ |
+| **Tulsbot Master**     | Workspace architecture, agent roster, core knowledge | Agent capabilities, workspace structure, automation patterns |
+| **Tulsbot Operations** | Workflow debugging, automation troubleshooting       | Error diagnosis, automation failures, sub-agent coordination |
+| **Tulsbot Notion**     | Notion API patterns, database schemas, templates     | Database schemas, API usage, page templates, sync workflows  |
 
 ### Query Workflow
 
@@ -104,6 +106,7 @@ scripts/nlm-sync-tulsbot.sh
 ```
 
 Run after:
+
 - Major Notion workspace restructuring
 - New automation rules or agent additions
 - Tulsbot configuration changes

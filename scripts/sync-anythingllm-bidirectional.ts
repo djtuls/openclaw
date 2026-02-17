@@ -11,11 +11,11 @@
  * 5. Can run as a daemon or one-shot sync
  */
 
+import chokidar from "chokidar";
+import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import chokidar from "chokidar";
-import { createHash } from "node:crypto";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, "..");
@@ -53,9 +53,7 @@ function parseMemoryFile(fileContent: string, fileName: string): MemoryFileMetad
 
   // Extract content (everything after ---)
   const separatorIndex = fileContent.indexOf("\n---\n");
-  const content = separatorIndex >= 0
-    ? fileContent.slice(separatorIndex + 5).trim()
-    : fileContent;
+  const content = separatorIndex >= 0 ? fileContent.slice(separatorIndex + 5).trim() : fileContent;
 
   // Generate hash for change detection
   const hash = createHash("md5").update(content).digest("hex");
@@ -125,7 +123,10 @@ async function syncMemoryToAnythingLLM(
   const brainFilePath = path.join(brainDir, brainFileName);
 
   // Check if file exists and has same content hash
-  const exists = await fs.access(brainFilePath).then(() => true).catch(() => false);
+  const exists = await fs
+    .access(brainFilePath)
+    .then(() => true)
+    .catch(() => false);
   if (exists) {
     const existingContent = await fs.readFile(brainFilePath, "utf-8");
     const existingHash = createHash("md5").update(existingContent).digest("hex");
@@ -208,7 +209,7 @@ async function watchMode() {
 
   // Watch for changes
   const watcher = chokidar.watch(workspaceDir, {
-    ignored: /(^|[\/\\])\../, // Ignore dotfiles
+    ignored: /(^|[/\\])\../, // Ignore dotfiles
     persistent: true,
     ignoreInitial: true,
   });
@@ -248,8 +249,8 @@ async function watchMode() {
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-  const watchFlag = args.includes("--watch") || args.includes("-w");
+  const args = new Set(process.argv.slice(2));
+  const watchFlag = args.has("--watch") || args.has("-w");
 
   if (watchFlag) {
     await watchMode();

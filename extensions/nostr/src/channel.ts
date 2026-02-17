@@ -285,10 +285,7 @@ export const nostrPlugin: ChannelPlugin<ResolvedNostrAccount> = {
                 if (!replyText) {
                   return;
                 }
-                const message = runtime.channel.text.convertMarkdownTables(
-                  replyText,
-                  tableMode,
-                );
+                const message = runtime.channel.text.convertMarkdownTables(replyText, tableMode);
                 await reply(message);
               },
             },

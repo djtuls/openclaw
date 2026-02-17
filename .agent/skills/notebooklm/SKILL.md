@@ -20,27 +20,27 @@ For codebase, build, CI, infra, or channel questions — use OpenClaw notebooks 
 
 ## Notebooks
 
-| Notebook | Purpose | Query for... |
-|----------|---------|-------------|
-| **Tulsbot Master** | Workspace architecture, agent roster, core knowledge | Agent capabilities, workspace structure, automation patterns |
-| **Tulsbot Operations** | Workflow debugging, automation troubleshooting | Error diagnosis, automation failures, sub-agent coordination |
-| **Tulsbot Notion** | Notion API patterns, database schemas, templates | Database schemas, API usage, page templates, sync workflows |
+| Notebook               | Purpose                                              | Query for...                                                 |
+| ---------------------- | ---------------------------------------------------- | ------------------------------------------------------------ |
+| **Tulsbot Master**     | Workspace architecture, agent roster, core knowledge | Agent capabilities, workspace structure, automation patterns |
+| **Tulsbot Operations** | Workflow debugging, automation troubleshooting       | Error diagnosis, automation failures, sub-agent coordination |
+| **Tulsbot Notion**     | Notion API patterns, database schemas, templates     | Database schemas, API usage, page templates, sync workflows  |
 
 Notebook IDs are stored in `.env` as `NLM_TULSBOT_*` vars and registered in `.agents/skills/notebooklm/references/notebook-registry.md`.
 
 ## When to Use Which Notebook
 
-| Need | Use | Why |
-|------|-----|-----|
-| Agent capabilities / roster / coordination | Tulsbot Master | 17 agent definitions with roles and capabilities |
-| Workspace structure / settings / integrations | Tulsbot Master | Core workspace knowledge from Notion |
-| Automation failures / workflow errors | Tulsbot Operations | Debugging patterns for triggers and workflows |
-| Sub-agent coordination issues | Tulsbot Operations | Inter-agent routing and orchestration patterns |
-| Notion API / database schemas | Tulsbot Notion | 344 API endpoints, schema definitions |
-| Page templates / sync workflows | Tulsbot Notion | Template patterns and sync configurations |
-| Code errors / build failures | **OpenClaw Debugging** | Wrong domain — use `.agents/skills/notebooklm/SKILL.md` |
-| Security / OWASP / CVE | **OpenClaw Security** | Wrong domain — use `.agents/skills/notebooklm/SKILL.md` |
-| Codebase architecture | **OpenClaw Master** | Wrong domain — use `.agents/skills/notebooklm/SKILL.md` |
+| Need                                          | Use                    | Why                                                     |
+| --------------------------------------------- | ---------------------- | ------------------------------------------------------- |
+| Agent capabilities / roster / coordination    | Tulsbot Master         | 17 agent definitions with roles and capabilities        |
+| Workspace structure / settings / integrations | Tulsbot Master         | Core workspace knowledge from Notion                    |
+| Automation failures / workflow errors         | Tulsbot Operations     | Debugging patterns for triggers and workflows           |
+| Sub-agent coordination issues                 | Tulsbot Operations     | Inter-agent routing and orchestration patterns          |
+| Notion API / database schemas                 | Tulsbot Notion         | 344 API endpoints, schema definitions                   |
+| Page templates / sync workflows               | Tulsbot Notion         | Template patterns and sync configurations               |
+| Code errors / build failures                  | **OpenClaw Debugging** | Wrong domain — use `.agents/skills/notebooklm/SKILL.md` |
+| Security / OWASP / CVE                        | **OpenClaw Security**  | Wrong domain — use `.agents/skills/notebooklm/SKILL.md` |
+| Codebase architecture                         | **OpenClaw Master**    | Wrong domain — use `.agents/skills/notebooklm/SKILL.md` |
 
 ## Query Workflow
 
@@ -88,6 +88,7 @@ scripts/nlm-sync-tulsbot.sh
 ```
 
 Run after:
+
 - Major Notion workspace restructuring
 - New automation rules or agent additions
 - Tulsbot configuration changes
@@ -112,10 +113,10 @@ nlm login --check                                    # Verify auth status
 
 ## Troubleshooting
 
-| Problem | Fix |
-|---------|-----|
-| `nlm: command not found` | Install: `uv tool install notebooklm-mcp-cli` |
-| Query returns auth error | Run `nlm login` to re-authenticate |
-| Stale workspace answers | Run `scripts/nlm-sync-tulsbot.sh` |
-| Notebook not found | Check registry: `.agents/skills/notebooklm/references/notebook-registry.md` |
-| Knowledge extraction fails | Ensure `Tulsbot/.tulsbot/core-app-knowledge.json` exists |
+| Problem                    | Fix                                                                         |
+| -------------------------- | --------------------------------------------------------------------------- |
+| `nlm: command not found`   | Install: `uv tool install notebooklm-mcp-cli`                               |
+| Query returns auth error   | Run `nlm login` to re-authenticate                                          |
+| Stale workspace answers    | Run `scripts/nlm-sync-tulsbot.sh`                                           |
+| Notebook not found         | Check registry: `.agents/skills/notebooklm/references/notebook-registry.md` |
+| Knowledge extraction fails | Ensure `Tulsbot/.tulsbot/core-app-knowledge.json` exists                    |
