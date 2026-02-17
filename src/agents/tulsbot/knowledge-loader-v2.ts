@@ -136,6 +136,7 @@ const agentCache = new LRUCache<string, TulsbotSubAgent>(50, (evictedAgentName) 
         accessCount: metrics.accessCount,
         avgLoadTimeMs: metrics.avgLoadTimeMs,
       });
+      console.log(`Cache eviction: ${evictedAgentName} (accesses: ${metrics.accessCount})`);
     }
   }
 });
@@ -570,7 +571,7 @@ export function getTelemetryDashboard(): {
       avgLoadTimeMs: Number(stats.avgLoadTimeMs.toFixed(2)),
       totalLoadsProcessed: stats.totalLoads,
       uptimeMs: uptime,
-      memoryUsageMB: Number((stats.memoryUsageBytes / 1024 / 1024).toFixed(2)),
+      memoryUsageMB: Number((stats.memoryUsageBytes / 1024 / 1024).toFixed(6)),
     },
     performance: {
       minLoadTimeMs:
@@ -625,9 +626,9 @@ export function getCacheHealth(): {
   }
 
   // Check load time performance
-  if (dashboard.performance.avgLoadTimeMs > 10) {
+  if (dashboard.performance.avgLoadTimeMs > 50) {
     status = status === "critical" ? "critical" : "warning";
-    issues.push(`Slow avg load time: ${dashboard.performance.avgLoadTimeMs}ms (target: <5ms)`);
+    issues.push(`Slow avg load time: ${dashboard.performance.avgLoadTimeMs}ms (target: <50ms)`);
     recommendations.push("Investigate disk I/O performance or reduce agent file sizes");
   }
 

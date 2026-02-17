@@ -296,7 +296,14 @@ export class MemoryIndexManager implements MemorySearchManager {
       ? await this.searchKeyword(cleaned, candidates, namespace).catch(() => [])
       : [];
 
-    const queryVec = await this.embedQueryWithTimeout(cleaned);
+    let queryVec: number[] = [];
+    try {
+      queryVec = await this.embedQueryWithTimeout(cleaned);
+    } catch (err) {
+      log.warn(
+        `memory search: embedding query failed, falling back to keyword-only: ${String(err)}`,
+      );
+    }
     const hasVector = queryVec.some((v) => v !== 0);
     const vectorResults = hasVector
       ? await this.searchVector(queryVec, candidates, namespace).catch(() => [])
@@ -731,7 +738,9 @@ export class MemoryIndexManager implements MemorySearchManager {
     const dir = path.dirname(dbPath);
     ensureDir(dir);
     const { DatabaseSync } = requireNodeSqlite();
-    return new DatabaseSync(dbPath, { allowExtension: this.settings.store.vector.enabled });
+    const db = new DatabaseSync(dbPath, { allowExtension: this.settings.store.vector.enabled });
+    db.exec("PRAGMA busy_timeout = 5000;");
+    return db;
   }
 
   private seedEmbeddingCache(sourceDb: DatabaseSync): void {

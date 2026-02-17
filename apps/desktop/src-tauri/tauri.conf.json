@@ -1,0 +1,77 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
+  "productName": "Tulsbot",
+  "version": "0.1.0",
+  "identifier": "com.tulsbot.desktop",
+  "build": {
+    "frontendDist": "../../../dist/control-ui",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "cd ../../ui && npm run dev",
+    "beforeBuildCommand": "cd ../../ui && npm run build"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Tulsbot",
+        "label": "main",
+        "url": "tulsbot.html",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "visible": true
+      },
+      {
+        "title": "",
+        "label": "chat-popover",
+        "width": 380,
+        "height": 540,
+        "resizable": false,
+        "fullscreen": false,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "visible": false,
+        "skipTaskbar": true,
+        "center": false,
+        "x": 0,
+        "y": 0
+      }
+    ],
+    "trayIcon": {
+      "iconPath": "icons/tray-icon.png",
+      "iconAsTemplate": true,
+      "tooltip": "Tulsbot"
+    },
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' http://localhost:* ws://localhost:* ipc://localhost; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-src 'self' http://localhost:*; img-src 'self' data: http://localhost:*"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "app"],
+    "resources": ["resources/**/*"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "frameworks": [],
+      "signingIdentity": null
+    },
+    "externalBin": []
+  },
+  "plugins": {
+    "shell": {
+      "open": true
+    }
+  }
+}

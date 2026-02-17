@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- Rounded square background -->
+  <rect x="4" y="4" width="192" height="192" rx="40" ry="40" fill="#0D0D0D" />
+  <rect x="4" y="4" width="192" height="192" rx="40" ry="40" fill="none" stroke="#1A1A1A" stroke-width="1" />
+
+  <!-- Bot icon centered -->
+  <g transform="translate(52, 32)">
+    <!-- Antenna -->
+    <line x1="48" y1="0" x2="48" y2="16" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" />
+    <circle cx="48" cy="0" r="5" fill="#FFFFFF" />
+
+    <!-- Head -->
+    <rect x="4" y="20" width="88" height="68" rx="18" ry="18" fill="none" stroke="#FFFFFF" stroke-width="3" />
+
+    <!-- Eyes -->
+    <circle cx="32" cy="52" r="8" fill="#FFFFFF" />
+    <circle cx="64" cy="52" r="8" fill="#FFFFFF" />
+
+    <!-- Mouth -->
+    <line x1="30" y1="70" x2="66" y2="70" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" />
+
+    <!-- Ears -->
+    <rect x="-6" y="38" width="8" height="22" rx="4" ry="4" fill="#FFFFFF" />
+    <rect x="94" y="38" width="8" height="22" rx="4" ry="4" fill="#FFFFFF" />
+  </g>
+
+  <!-- "Tulsbot" text below icon -->
+  <text x="100" y="155" text-anchor="middle" font-family="Inter, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-weight="600" font-size="26" fill="#FFFFFF" letter-spacing="1.5">
+    Tulsbot
+  </text>
+</svg>

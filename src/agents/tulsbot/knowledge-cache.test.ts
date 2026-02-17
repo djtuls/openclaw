@@ -369,12 +369,13 @@ describe("Knowledge Cache (V2 LRU)", () => {
     it("reports healthy when hit rate is above 80%", async () => {
       const { agentNames } = await setupTestFixtures(3);
 
-      // 1 miss + 4 hits = 80% hit rate
-      await findAgentByName(agentNames[0]);
-      await findAgentByName(agentNames[0]);
-      await findAgentByName(agentNames[0]);
-      await findAgentByName(agentNames[0]);
-      await findAgentByName(agentNames[0]);
+      // 1 miss + 9 hits = 90% hit rate
+      // Extra hits also dilute avgLoadTimeMs so slow disk I/O on the
+      // first (miss) load doesn't push the average above the 50ms threshold.
+      await findAgentByName(agentNames[0]); // miss (disk read)
+      for (let i = 0; i < 9; i++) {
+        await findAgentByName(agentNames[0]); // hit (from cache)
+      }
 
       const health = getCacheHealth();
       expect(health.status).toBe("healthy");

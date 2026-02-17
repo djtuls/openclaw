@@ -8,6 +8,36 @@ const log = createLogger("memory/search");
 const vectorToBlob = (embedding: number[]): Buffer =>
   Buffer.from(new Float32Array(embedding).buffer);
 
+// ---------------------------------------------------------------------------
+// Error recovery helpers
+// ---------------------------------------------------------------------------
+
+const NEGATIVE_CACHE_TTL_MS = 60_000;
+const negativeCache = new Map<string, number>();
+
+function withBusyRetry<T>(fn: () => T, maxAttempts = 3): T {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return fn();
+    } catch (err) {
+      if (
+        err instanceof Error &&
+        err.message.includes("SQLITE_BUSY") &&
+        attempt < maxAttempts - 1
+      ) {
+        const delayMs = 50 * Math.pow(2, attempt);
+        log.warn("SQLite BUSY, retrying", { attempt, delayMs });
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMs);
+        lastError = err;
+      } else {
+        throw err;
+      }
+    }
+  }
+  throw lastError;
+}
+
 export type SearchSource = string;
 
 export type SearchRowResult = {
@@ -34,7 +64,18 @@ export async function searchVector(params: {
   if (params.queryVec.length === 0 || params.limit <= 0) {
     return [];
   }
-  if (await params.ensureVectorReady(params.queryVec.length)) {
+  const vectorReady = await Promise.race([
+    params.ensureVectorReady(params.queryVec.length),
+    new Promise<boolean>((_, reject) =>
+      setTimeout(() => reject(new Error("ensureVectorReady timeout")), 5000),
+    ),
+  ]).catch((err: unknown) => {
+    log.warn("ensureVectorReady failed, falling back to cosine scan", {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return false;
+  });
+  if (vectorReady) {
     const rows = params.db
       .prepare(
         `SELECT c.id, c.path, c.start_line, c.end_line, c.text,\n` +
@@ -109,13 +150,15 @@ export function listChunks(params: {
   embedding: number[];
   source: SearchSource;
 }> {
-  const rows = params.db
-    .prepare(
-      `SELECT id, path, start_line, end_line, text, embedding, source\n` +
-        `  FROM chunks\n` +
-        ` WHERE model = ?${params.sourceFilter.sql}`,
-    )
-    .all(params.providerModel, ...params.sourceFilter.params) as Array<{
+  const rows = withBusyRetry(() =>
+    params.db
+      .prepare(
+        `SELECT id, path, start_line, end_line, text, embedding, source\n` +
+          `  FROM chunks\n` +
+          ` WHERE model = ?${params.sourceFilter.sql}`,
+      )
+      .all(params.providerModel, ...params.sourceFilter.params),
+  ) as Array<{
     id: string;
     path: string;
     start_line: number;
@@ -155,6 +198,12 @@ export async function searchKeyword(params: {
     return [];
   }
 
+  const cachedExpiry = negativeCache.get(ftsQuery);
+  if (cachedExpiry !== undefined && Date.now() < cachedExpiry) {
+    log.debug("Negative cache hit, skipping FTS5 query", { ftsQuery });
+    return [];
+  }
+
   log.debug("searchKeyword called", {
     query: params.query,
     ftsQuery,
@@ -171,20 +220,23 @@ export async function searchKeyword(params: {
 
   // Step 1: FTS5 MATCH query - get all matching ids with ranks
   // Note: We intentionally fetch MORE results than limit because filtering in Step 2 may reduce count
-  const ftsRows = params.db
-    .prepare(
-      `SELECT ${params.ftsTable}.id, bm25(${params.ftsTable}) AS rank\n` +
-        `  FROM ${params.ftsTable}\n` +
-        ` WHERE ${params.ftsTable} MATCH ?\n` +
-        ` ORDER BY rank ASC\n` +
-        ` LIMIT ?`,
-    )
-    .all(ftsQuery, params.limit * 3) as Array<{ id: string; rank: number }>;
+  const ftsRows = withBusyRetry(() =>
+    params.db
+      .prepare(
+        `SELECT ${params.ftsTable}.id, bm25(${params.ftsTable}) AS rank\n` +
+          `  FROM ${params.ftsTable}\n` +
+          ` WHERE ${params.ftsTable} MATCH ?\n` +
+          ` ORDER BY rank ASC\n` +
+          ` LIMIT ?`,
+      )
+      .all(ftsQuery, params.limit * 3),
+  ) as Array<{ id: string; rank: number }>;
 
   log.debug("FTS5 MATCH results", { count: ftsRows.length });
 
   if (ftsRows.length === 0) {
     log.debug("No FTS5 matches found");
+    negativeCache.set(ftsQuery, Date.now() + NEGATIVE_CACHE_TTL_MS);
     return [];
   }
 
@@ -199,9 +251,11 @@ export async function searchKeyword(params: {
 
   log.debug("Chunks query", { chunksQuery });
 
-  const chunkRows = params.db
-    .prepare(chunksQuery)
-    .all(...idList, params.providerModel, ...params.sourceFilter.params) as Array<{
+  const chunkRows = withBusyRetry(() =>
+    params.db
+      .prepare(chunksQuery)
+      .all(...idList, params.providerModel, ...params.sourceFilter.params),
+  ) as Array<{
     id: string;
     path: string;
     source: SearchSource;

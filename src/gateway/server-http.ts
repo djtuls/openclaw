@@ -19,6 +19,9 @@ import {
   handleA2uiHttpRequest,
 } from "../canvas-host/a2ui.js";
 import { loadConfig } from "../config/config.js";
+import { getCacheStats } from "../metrics/cache-stats.js";
+import { metrics, dumpMetrics } from "../metrics/collector.js";
+import { checkRateLimit } from "../middleware/rate-limiter.js";
 import { safeEqualSecret } from "../security/secret-equal.js";
 import { handleSlackHttpRequest } from "../slack/http/index.js";
 import {
@@ -450,116 +453,154 @@ export function createGatewayHttpServer(opts: {
       const configSnapshot = loadConfig();
       const trustedProxies = configSnapshot.gateway?.trustedProxies ?? [];
       const requestPath = new URL(req.url ?? "/", "http://localhost").pathname;
-      if (await handleHooksRequest(req, res)) {
+
+      // ── Metrics endpoint (always reachable) ──────────────────────────────
+      if (req.method === "GET" && requestPath === "/metrics") {
+        sendJson(res, 200, { ...metrics.snapshot(), cache: getCacheStats() });
         return;
-      }
-      if (
-        await handleToolsInvokeHttpRequest(req, res, {
-          auth: resolvedAuth,
-          trustedProxies,
-          rateLimiter,
-        })
-      ) {
-        return;
-      }
-      if (await handleSlackHttpRequest(req, res)) {
-        return;
-      }
-      if (handlePluginRequest) {
-        // Channel HTTP endpoints are gateway-auth protected by default.
-        // Non-channel plugin routes remain plugin-owned and must enforce
-        // their own auth when exposing sensitive functionality.
-        if (requestPath.startsWith("/api/channels/")) {
-          const token = getBearerToken(req);
-          const authResult = await authorizeGatewayConnect({
-            auth: resolvedAuth,
-            connectAuth: token ? { token, password: token } : null,
-            req,
-            trustedProxies,
-            rateLimiter,
-          });
-          if (!authResult.ok) {
-            sendGatewayAuthFailure(res, authResult);
-            return;
-          }
-        }
-        if (await handlePluginRequest(req, res)) {
-          return;
-        }
-      }
-      if (openResponsesEnabled) {
-        if (
-          await handleOpenResponsesHttpRequest(req, res, {
-            auth: resolvedAuth,
-            config: openResponsesConfig,
-            trustedProxies,
-            rateLimiter,
-          })
-        ) {
-          return;
-        }
-      }
-      if (openAiChatCompletionsEnabled) {
-        if (
-          await handleOpenAiHttpRequest(req, res, {
-            auth: resolvedAuth,
-            trustedProxies,
-            rateLimiter,
-          })
-        ) {
-          return;
-        }
-      }
-      if (canvasHost) {
-        if (isCanvasPath(requestPath)) {
-          const ok = await authorizeCanvasRequest({
-            req,
-            auth: resolvedAuth,
-            trustedProxies,
-            clients,
-            rateLimiter,
-          });
-          if (!ok.ok) {
-            sendGatewayAuthFailure(res, ok);
-            return;
-          }
-        }
-        if (await handleA2uiHttpRequest(req, res)) {
-          return;
-        }
-        if (await canvasHost.handleHttpRequest(req, res)) {
-          return;
-        }
-      }
-      if (controlUiEnabled) {
-        if (
-          handleControlUiAvatarRequest(req, res, {
-            basePath: controlUiBasePath,
-            resolveAvatar: (agentId) => resolveAgentAvatar(configSnapshot, agentId),
-          })
-        ) {
-          return;
-        }
-        if (
-          handleControlUiHttpRequest(req, res, {
-            basePath: controlUiBasePath,
-            config: configSnapshot,
-            root: controlUiRoot,
-          })
-        ) {
-          return;
-        }
       }
 
-      sendJson(res, 404, { error: "Not Found", code: "NOT_FOUND" });
+      // ── Rate limiting ────────────────────────────────────────────────────
+      const clientIp = resolveGatewayClientIp(req, trustedProxies);
+      const channel = requestPath.split("/")[1] ?? "root";
+      const rateResult = checkRateLimit(clientIp, channel);
+      if (!rateResult.allowed) {
+        metrics.increment("http.rate_limited");
+        sendJson(res, 429, {
+          error: "Too Many Requests",
+          retryAfterMs: rateResult.retryAfterMs,
+        });
+        return;
+      }
+
+      // ── Request instrumentation ──────────────────────────────────────────
+      const endTimer = metrics.startTimer("api", { provider: "gateway" });
+      metrics.increment("http.requests");
+
+      try {
+        if (await handleHooksRequest(req, res)) {
+          return;
+        }
+        if (
+          await handleToolsInvokeHttpRequest(req, res, {
+            auth: resolvedAuth,
+            trustedProxies,
+            rateLimiter,
+          })
+        ) {
+          return;
+        }
+        if (await handleSlackHttpRequest(req, res)) {
+          return;
+        }
+        if (handlePluginRequest) {
+          // Channel HTTP endpoints are gateway-auth protected by default.
+          // Non-channel plugin routes remain plugin-owned and must enforce
+          // their own auth when exposing sensitive functionality.
+          if (requestPath.startsWith("/api/channels/")) {
+            const token = getBearerToken(req);
+            const authResult = await authorizeGatewayConnect({
+              auth: resolvedAuth,
+              connectAuth: token ? { token, password: token } : null,
+              req,
+              trustedProxies,
+              rateLimiter,
+            });
+            if (!authResult.ok) {
+              sendGatewayAuthFailure(res, authResult);
+              return;
+            }
+          }
+          if (await handlePluginRequest(req, res)) {
+            return;
+          }
+        }
+        if (openResponsesEnabled) {
+          if (
+            await handleOpenResponsesHttpRequest(req, res, {
+              auth: resolvedAuth,
+              config: openResponsesConfig,
+              trustedProxies,
+              rateLimiter,
+            })
+          ) {
+            return;
+          }
+        }
+        if (openAiChatCompletionsEnabled) {
+          if (
+            await handleOpenAiHttpRequest(req, res, {
+              auth: resolvedAuth,
+              trustedProxies,
+              rateLimiter,
+            })
+          ) {
+            return;
+          }
+        }
+        if (canvasHost) {
+          if (isCanvasPath(requestPath)) {
+            const ok = await authorizeCanvasRequest({
+              req,
+              auth: resolvedAuth,
+              trustedProxies,
+              clients,
+              rateLimiter,
+            });
+            if (!ok.ok) {
+              sendGatewayAuthFailure(res, ok);
+              return;
+            }
+          }
+          if (await handleA2uiHttpRequest(req, res)) {
+            return;
+          }
+          if (await canvasHost.handleHttpRequest(req, res)) {
+            return;
+          }
+        }
+        if (controlUiEnabled) {
+          if (
+            handleControlUiAvatarRequest(req, res, {
+              basePath: controlUiBasePath,
+              resolveAvatar: (agentId) => resolveAgentAvatar(configSnapshot, agentId),
+            })
+          ) {
+            return;
+          }
+          if (
+            handleControlUiHttpRequest(req, res, {
+              basePath: controlUiBasePath,
+              config: configSnapshot,
+              root: controlUiRoot,
+            })
+          ) {
+            return;
+          }
+        }
+
+        sendJson(res, 404, { error: "Not Found", code: "NOT_FOUND" });
+      } catch (err) {
+        metrics.increment("http.errors");
+        const message = err instanceof Error ? err.message : String(err);
+        try {
+          sendJson(res, 500, { error: "Internal Server Error", code: "INTERNAL_ERROR" });
+        } catch {
+          /* response already sent or socket closed */
+        }
+        // Log the unexpected error so it is visible in server output
+        console.error("[gateway] Unhandled error in handleRequest:", message);
+      } finally {
+        endTimer();
+      }
     } catch (err) {
+      // Outer catch for errors before instrumentation starts (e.g., rate-limit logic)
       const message = err instanceof Error ? err.message : String(err);
       try {
         sendJson(res, 500, { error: "Internal Server Error", code: "INTERNAL_ERROR" });
       } catch {
         /* response already sent or socket closed */
       }
-      // Log the unexpected error so it is visible in server output
       console.error("[gateway] Unhandled error in handleRequest:", message);
     }
   }

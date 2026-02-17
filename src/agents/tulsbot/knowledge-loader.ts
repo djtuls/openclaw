@@ -37,6 +37,15 @@ let cacheVersion: string | null = null;
 let cacheLoadTime: number | null = null;
 
 /**
+ * Negative cache: if the knowledge file is missing or unparseable, cache the
+ * failure for NEGATIVE_CACHE_TTL_MS so repeated calls within that window
+ * return immediately rather than hammering the filesystem.
+ */
+let negativeCache: Error | null = null;
+let negativeCacheTime: number | null = null;
+const NEGATIVE_CACHE_TTL_MS = 60_000;
+
+/**
  * Default path to the Tulsbot knowledge file
  * Resolves to ~/Backend_local Macbook/Tulsbot/.tulsbot/core-app-knowledge.json
  * Can be overridden with TULSBOT_KNOWLEDGE_PATH environment variable for testing
@@ -122,17 +131,34 @@ export async function getCachedKnowledge(forceReload = false): Promise<TulsbotKn
 
   // Original V1 implementation (backward compatible)
   if (!cachedKnowledge || forceReload) {
-    const knowledge = await loadTulsbotKnowledge();
+    // Check negative cache: if last load failed within TTL, re-throw immediately
+    if (!forceReload && negativeCache !== null && negativeCacheTime !== null) {
+      if (Date.now() - negativeCacheTime < NEGATIVE_CACHE_TTL_MS) {
+        throw negativeCache;
+      }
+    }
 
-    // Cache the loaded knowledge
-    cachedKnowledge = knowledge;
-    cacheVersion = knowledge.version || "unknown";
-    cacheLoadTime = Date.now();
+    try {
+      const knowledge = await loadTulsbotKnowledge();
 
-    log.info("loaded knowledge", {
-      version: cacheVersion,
-      agentCount: knowledge.agents.length,
-    });
+      // Success — clear negative cache and populate positive cache
+      negativeCache = null;
+      negativeCacheTime = null;
+      cachedKnowledge = knowledge;
+      cacheVersion = knowledge.version || "unknown";
+      cacheLoadTime = Date.now();
+
+      log.info("loaded knowledge", {
+        version: cacheVersion,
+        agentCount: knowledge.agents.length,
+      });
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      negativeCache = error;
+      negativeCacheTime = Date.now();
+      log.warn("knowledge load failed, caching failure for TTL", { error: error.message });
+      throw error;
+    }
   }
 
   return cachedKnowledge;
@@ -166,6 +192,8 @@ export function clearCache(): void {
   cachedKnowledge = null;
   cacheVersion = null;
   cacheLoadTime = null;
+  negativeCache = null;
+  negativeCacheTime = null;
 }
 
 /**

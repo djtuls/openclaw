@@ -1,75 +1,75 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 
 :root {
-  /* Background - Warmer dark with depth */
-  --bg: #12141a;
-  --bg-accent: #14161d;
-  --bg-elevated: #1a1d25;
-  --bg-hover: #262a35;
-  --bg-muted: #262a35;
+  /* Background - Notion-style neutral darks */
+  --bg: #191919;
+  --bg-accent: #202020;
+  --bg-elevated: #262626;
+  --bg-hover: #2d2d2d;
+  --bg-muted: #2d2d2d;
 
-  /* Card / Surface - More contrast between levels */
-  --card: #181b22;
-  --card-foreground: #f4f4f5;
-  --card-highlight: rgba(255, 255, 255, 0.05);
-  --popover: #181b22;
-  --popover-foreground: #f4f4f5;
+  /* Card / Surface - Clean contrast layers */
+  --card: #202020;
+  --card-foreground: #ebebeb;
+  --card-highlight: rgba(255, 255, 255, 0.04);
+  --popover: #262626;
+  --popover-foreground: #ebebeb;
 
   /* Panel */
-  --panel: #12141a;
-  --panel-strong: #1a1d25;
-  --panel-hover: #262a35;
-  --chrome: rgba(18, 20, 26, 0.95);
-  --chrome-strong: rgba(18, 20, 26, 0.98);
+  --panel: #191919;
+  --panel-strong: #202020;
+  --panel-hover: #2d2d2d;
+  --chrome: rgba(25, 25, 25, 0.95);
+  --chrome-strong: rgba(25, 25, 25, 0.98);
 
-  /* Text - Slightly warmer */
-  --text: #e4e4e7;
-  --text-strong: #fafafa;
-  --chat-text: #e4e4e7;
-  --muted: #71717a;
-  --muted-strong: #52525b;
-  --muted-foreground: #71717a;
+  /* Text - Notion-style clarity */
+  --text: #ebebeb;
+  --text-strong: #ffffff;
+  --chat-text: #ebebeb;
+  --muted: #9b9b9b;
+  --muted-strong: #5a5a5a;
+  --muted-foreground: #9b9b9b;
 
-  /* Border - Subtle but defined */
-  --border: #27272a;
-  --border-strong: #3f3f46;
-  --border-hover: #52525b;
-  --input: #27272a;
-  --ring: #ff5c5c;
+  /* Border - Notion-clean */
+  --border: #333333;
+  --border-strong: #3e3e3e;
+  --border-hover: #555555;
+  --input: #333333;
+  --ring: #5c9eff;
 
-  /* Accent - Punchy signature red */
-  --accent: #ff5c5c;
-  --accent-hover: #ff7070;
-  --accent-muted: #ff5c5c;
-  --accent-subtle: rgba(255, 92, 92, 0.15);
-  --accent-foreground: #fafafa;
-  --accent-glow: rgba(255, 92, 92, 0.25);
-  --primary: #ff5c5c;
+  /* Accent - Tulsbot signature blue */
+  --accent: #5c9eff;
+  --accent-hover: #79adff;
+  --accent-muted: #5c9eff;
+  --accent-subtle: rgba(92, 158, 255, 0.15);
+  --accent-foreground: #ffffff;
+  --accent-glow: rgba(92, 158, 255, 0.25);
+  --primary: #5c9eff;
   --primary-foreground: #ffffff;
 
-  /* Secondary - Teal accent for variety */
-  --secondary: #1e2028;
-  --secondary-foreground: #f4f4f5;
+  /* Secondary - Subtle neutral */
+  --secondary: #262626;
+  --secondary-foreground: #ebebeb;
   --accent-2: #14b8a6;
   --accent-2-muted: rgba(20, 184, 166, 0.7);
   --accent-2-subtle: rgba(20, 184, 166, 0.15);
 
-  /* Semantic - More saturated */
-  --ok: #22c55e;
-  --ok-muted: rgba(34, 197, 94, 0.75);
-  --ok-subtle: rgba(34, 197, 94, 0.12);
-  --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
-  --warn: #f59e0b;
-  --warn-muted: rgba(245, 158, 11, 0.75);
-  --warn-subtle: rgba(245, 158, 11, 0.12);
-  --danger: #ef4444;
-  --danger-muted: rgba(239, 68, 68, 0.75);
-  --danger-subtle: rgba(239, 68, 68, 0.12);
-  --info: #3b82f6;
+  /* Semantic - Notion-aligned */
+  --ok: #4bc48a;
+  --ok-muted: rgba(75, 196, 138, 0.75);
+  --ok-subtle: rgba(75, 196, 138, 0.12);
+  --destructive: #eb5757;
+  --destructive-foreground: #ffffff;
+  --warn: #e5a63a;
+  --warn-muted: rgba(229, 166, 58, 0.75);
+  --warn-subtle: rgba(229, 166, 58, 0.12);
+  --danger: #eb5757;
+  --danger-muted: rgba(235, 87, 87, 0.75);
+  --danger-subtle: rgba(235, 87, 87, 0.12);
+  --info: #5c9eff;
 
-  /* Focus - With glow */
-  --focus: rgba(255, 92, 92, 0.25);
+  /* Focus - Blue glow */
+  --focus: rgba(92, 158, 255, 0.25);
   --focus-ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--ring);
   --focus-glow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ring), 0 0 20px var(--accent-glow);
 
@@ -80,21 +80,22 @@
   --theme-switch-x: 50%;
   --theme-switch-y: 50%;
 
-  /* Typography - Space Grotesk for personality */
+  /* Typography - Bricolage Grotesque for Notion-style character */
   --mono:
     "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, monospace;
-  --font-body: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-body:
+    "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-display:
-    "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
-  /* Shadows - Richer with subtle color */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.03);
-  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.03);
-  --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  /* Shadows - Softer for Notion feel */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.15);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.03);
+  --shadow-xl: 0 24px 48px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.03);
   --shadow-glow: 0 0 30px var(--accent-glow);
 
-  /* Radii - Slightly larger for friendlier feel */
+  /* Radii - Notion-standard */
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -113,7 +114,7 @@
   color-scheme: dark;
 }
 
-/* Light theme - Clean with subtle warmth */
+/* Light theme - Notion-clean with Tulsbot blue */
 :root[data-theme="light"] {
   --bg: #fafafa;
   --bg-accent: #f5f5f5;
@@ -145,14 +146,16 @@
   --border-strong: #d4d4d8;
   --border-hover: #a1a1aa;
   --input: #e4e4e7;
+  --ring: #2563eb;
 
-  --accent: #dc2626;
-  --accent-hover: #ef4444;
-  --accent-muted: #dc2626;
-  --accent-subtle: rgba(220, 38, 38, 0.12);
+  /* Accent - Tulsbot blue (darker for light bg contrast) */
+  --accent: #2563eb;
+  --accent-hover: #3b82f6;
+  --accent-muted: #2563eb;
+  --accent-subtle: rgba(37, 99, 235, 0.12);
   --accent-foreground: #ffffff;
-  --accent-glow: rgba(220, 38, 38, 0.15);
-  --primary: #dc2626;
+  --accent-glow: rgba(37, 99, 235, 0.15);
+  --primary: #2563eb;
   --primary-foreground: #ffffff;
 
   --secondary: #f4f4f5;
@@ -161,6 +164,7 @@
   --accent-2-muted: rgba(13, 148, 136, 0.75);
   --accent-2-subtle: rgba(13, 148, 136, 0.12);
 
+  /* Semantic - Notion-aligned */
   --ok: #16a34a;
   --ok-muted: rgba(22, 163, 74, 0.75);
   --ok-subtle: rgba(22, 163, 74, 0.1);
@@ -174,12 +178,13 @@
   --danger-subtle: rgba(220, 38, 38, 0.1);
   --info: #2563eb;
 
-  --focus: rgba(220, 38, 38, 0.2);
+  /* Focus - Blue glow */
+  --focus: rgba(37, 99, 235, 0.2);
   --focus-glow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ring), 0 0 16px var(--accent-glow);
 
   --grid-line: rgba(0, 0, 0, 0.05);
 
-  /* Light shadows */
+  /* Light shadows - Notion-soft */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04);
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
@@ -241,7 +246,7 @@ html.theme-transition::view-transition-new(theme) {
   }
 }
 
-openclaw-app {
+tulsbot-app {
   display: block;
   position: relative;
   z-index: 1;

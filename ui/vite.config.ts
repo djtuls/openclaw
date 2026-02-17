@@ -31,6 +31,12 @@ export default defineConfig(() => {
       outDir: path.resolve(here, "../dist/control-ui"),
       emptyOutDir: true,
       sourcemap: true,
+      rollupOptions: {
+        input: {
+          index: path.resolve(here, "index.html"),
+          tulsbot: path.resolve(here, "tulsbot.html"),
+        },
+      },
     },
     server: {
       host: true,
