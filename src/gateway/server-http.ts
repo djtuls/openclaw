@@ -461,9 +461,14 @@ export function createGatewayHttpServer(opts: {
       }
 
       // ── Rate limiting ────────────────────────────────────────────────────
-      const clientIp = resolveGatewayClientIp(req, trustedProxies);
+      const clientIp = resolveGatewayClientIp({
+        remoteAddr: req.socket.remoteAddress,
+        forwardedFor: req.headers["x-forwarded-for"] as string | undefined,
+        realIp: req.headers["x-real-ip"] as string | undefined,
+        trustedProxies,
+      });
       const channel = requestPath.split("/")[1] ?? "root";
-      const rateResult = checkRateLimit(clientIp, channel);
+      const rateResult = checkRateLimit(clientIp ?? "unknown", channel);
       if (!rateResult.allowed) {
         metrics.increment("http.rate_limited");
         sendJson(res, 429, {
