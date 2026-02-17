@@ -2606,6 +2606,14 @@
             if (chat) chat.scrollTop = chat.scrollHeight;
           }
 
+          /* Lazy-load Tulsbot iframe on first visit */
+          if (id === "tulsbot") {
+            var frame = document.getElementById("tulsbot-frame");
+            if (frame && !frame.src) {
+              frame.src = "tulsbot.html";
+            }
+          }
+
           /* Update chat context label + prompts for new page */
           var ctxName = PAGE_CONTEXT_NAMES[id];
           if (ctxName) setContext(ctxName);
@@ -3286,6 +3294,7 @@
           databases: "◈ Databases",
           team: "◈ Team",
           clawdbot: "◈ ClawdBot",
+          tulsbot: "◈ Tulsbot",
         };
 
         var paletteIndex = -1;
