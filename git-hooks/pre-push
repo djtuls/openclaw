@@ -1,0 +1,64 @@
+#!/bin/sh
+# Pre-push validation hook for ClawdBot_Tulsbot 2.0
+# Ensures code quality before pushing to remote
+
+set -e
+
+echo "🚀 Running pre-push validations..."
+
+# Get the current branch name
+BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "detached")
+
+# Validate branch naming (allow main, feature/*, fix/*, chore/*, docs/*, test/*)
+if [ "$BRANCH" != "main" ] && [ "$BRANCH" != "detached" ]; then
+  if ! echo "$BRANCH" | grep -qE '^(feature|fix|chore|docs|test|refactor|perf)/'; then
+    echo "❌ Invalid branch name: $BRANCH"
+    echo "   Branch names must follow: feature/*, fix/*, chore/*, docs/*, test/*, refactor/*, perf/*"
+    exit 1
+  fi
+fi
+
+# Check for uncommitted changes
+if ! git diff-index --quiet HEAD --; then
+  echo "❌ You have uncommitted changes. Please commit or stash them before pushing."
+  exit 1
+fi
+
+# Validate commit messages (conventional commits)
+echo "📝 Validating commit messages..."
+COMMITS=$(git log @{u}.. --pretty=format:"%s" 2>/dev/null || git log origin/main.. --pretty=format:"%s" 2>/dev/null || echo "")
+
+if [ -n "$COMMITS" ]; then
+  while IFS= read -r MSG; do
+    if ! echo "$MSG" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?!?:'; then
+      echo "❌ Invalid commit message format: $MSG"
+      echo "   Must follow conventional commits: type(scope)?: description"
+      echo "   Valid types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert"
+      exit 1
+    fi
+  done <<< "$COMMITS"
+fi
+
+# Run format check
+echo "💅 Checking code formatting..."
+if ! pnpm format:check --no-error-on-unmatched-pattern 2>/dev/null; then
+  echo "❌ Code formatting check failed. Run 'pnpm format' to fix."
+  exit 1
+fi
+
+# Run lint
+echo "🔍 Running lint checks..."
+if ! pnpm lint 2>/dev/null; then
+  echo "❌ Lint check failed. Run 'pnpm lint:fix' to fix auto-fixable issues."
+  exit 1
+fi
+
+# Run type check
+echo "📋 Checking TypeScript types..."
+if ! pnpm tsgo 2>/dev/null; then
+  echo "❌ Type check failed. Fix type errors before pushing."
+  exit 1
+fi
+
+echo "✅ All pre-push validations passed!"
+exit 0
