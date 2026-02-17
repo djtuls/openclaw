@@ -1150,6 +1150,22 @@
         margin-bottom: 16px;
       }
 
+      /* =============================================
+   TULSBOT EMBEDDED PAGE
+   ============================================= */
+      #page-tulsbot {
+        padding: 0 !important;
+        margin-right: var(--chat-w);
+        background: var(--bg);
+        overflow: hidden;
+      }
+      .tulsbot-frame {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: var(--bg);
+      }
+
       /* ── CHAT PANEL ── */
       .chat-panel {
         position: absolute;
@@ -1864,6 +1880,9 @@
           <div class="nav-item" data-page="clawdbot">
             <span class="ni" style="color: #ff5c5c">⬢</span><span class="nl">ClawdBot</span>
           </div>
+          <div class="nav-item" data-page="tulsbot">
+            <span class="ni" style="color: #5c9eff">◆</span><span class="nl">Tulsbot</span>
+          </div>
         </nav>
         <div class="sidebar-footer">
           <div class="sync-indicator">
@@ -2183,6 +2202,13 @@
               <button class="cb-compose-send" id="cb-send">↑</button>
             </div>
           </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════ -->
+        <!-- PAGE: TULSBOT (EMBEDDED APP)               -->
+        <!-- ══════════════════════════════════════════ -->
+        <div class="page" id="page-tulsbot">
+          <iframe class="tulsbot-frame" id="tulsbot-frame" title="Tulsbot Control"></iframe>
         </div>
 
         <!-- ── CHAT PANEL ── -->
@@ -3245,6 +3271,7 @@
           databases: ["Show database stats", "Which tables are largest?", "Run a health check"],
           team: ["Who's most active?", "Show team workload", "Draft a team update"],
           clawdbot: ["Show ClawdBot status", "Recent conversations", "Check error rate"],
+          tulsbot: ["Show Tulsbot status", "Check app health", "View recent logs"],
         };
         var DEFAULT_PROMPTS = [
           "Summarize this project",
