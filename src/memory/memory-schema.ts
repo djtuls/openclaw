@@ -1,4 +1,7 @@
 import type { DatabaseSync } from "node:sqlite";
+import { createLogger } from "../utils/logger.js";
+
+const log = createLogger("memory/schema");
 
 export function ensureMemoryIndexSchema(params: {
   db: DatabaseSync;
@@ -54,7 +57,7 @@ export function ensureMemoryIndexSchema(params: {
 
   let ftsAvailable = false;
   let ftsError: string | undefined;
-  console.log("[ensureMemoryIndexSchema] ftsEnabled:", params.ftsEnabled);
+  log.info("ensureMemoryIndexSchema", { ftsEnabled: params.ftsEnabled });
   if (params.ftsEnabled) {
     try {
       // Check if FTS table needs migration (missing metadata column)
@@ -62,20 +65,18 @@ export function ensureMemoryIndexSchema(params: {
         name: string;
       }>;
       const hasMetadataColumn = tableInfo.some((col) => col.name === "metadata");
-      console.log(
-        "[ensureMemoryIndexSchema] tableInfo.length:",
-        tableInfo.length,
-        "hasMetadataColumn:",
+      log.info("ensureMemoryIndexSchema tableInfo", {
+        tableInfoLength: tableInfo.length,
         hasMetadataColumn,
-      );
+      });
 
       if (tableInfo.length > 0 && !hasMetadataColumn) {
         // Drop old FTS table (cannot ALTER VIRTUAL TABLE)
-        console.log("[ensureMemoryIndexSchema] Dropping old FTS table for migration");
+        log.info("dropping old FTS table for migration");
         params.db.exec(`DROP TABLE IF EXISTS ${params.ftsTable};`);
       }
 
-      console.log("[ensureMemoryIndexSchema] Creating FTS table");
+      log.info("creating FTS table");
       params.db.exec(
         `CREATE VIRTUAL TABLE IF NOT EXISTS ${params.ftsTable} USING fts5(\n` +
           `  text,\n` +
@@ -91,7 +92,7 @@ export function ensureMemoryIndexSchema(params: {
 
       // Repopulate FTS table from chunks after migration
       if (tableInfo.length > 0 && !hasMetadataColumn) {
-        console.log("[ensureMemoryIndexSchema] Repopulating FTS table after migration");
+        log.info("repopulating FTS table after migration");
         params.db.exec(
           `INSERT INTO ${params.ftsTable} (text, id, path, source, model, start_line, end_line, metadata)\n` +
             `SELECT text, id, path, source, model, start_line, end_line, metadata FROM chunks;`,
@@ -99,7 +100,7 @@ export function ensureMemoryIndexSchema(params: {
       }
 
       ftsAvailable = true;
-      console.log("[ensureMemoryIndexSchema] FTS creation successful, ftsAvailable set to true");
+      log.info("FTS creation successful");
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       ftsAvailable = false;

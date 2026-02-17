@@ -4,8 +4,11 @@ import {
   DEFAULT_COPILOT_API_BASE_URL,
   resolveCopilotApiToken,
 } from "../providers/github-copilot-token.js";
+import { createLogger } from "../utils/logger.js";
 import { ensureAuthProfileStore, listProfilesForProvider } from "./auth-profiles.js";
 import { discoverBedrockModels } from "./bedrock-discovery.js";
+
+const log = createLogger("agents/models-config");
 import {
   buildCloudflareAiGatewayModelDefinition,
   resolveCloudflareAiGatewayBaseUrl,
@@ -161,12 +164,12 @@ async function discoverOllamaModels(baseUrl?: string): Promise<ModelDefinitionCo
       signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) {
-      console.warn(`Failed to discover Ollama models: ${response.status}`);
+      log.warn("failed to discover Ollama models", { status: response.status });
       return [];
     }
     const data = (await response.json()) as OllamaTagsResponse;
     if (!data.models || data.models.length === 0) {
-      console.warn("No Ollama models found on local instance");
+      log.warn("no Ollama models found on local instance");
       return [];
     }
     return data.models.map((model) => {
@@ -189,7 +192,7 @@ async function discoverOllamaModels(baseUrl?: string): Promise<ModelDefinitionCo
       };
     });
   } catch (error) {
-    console.warn(`Failed to discover Ollama models: ${String(error)}`);
+    log.warn("failed to discover Ollama models (catch)", { error: String(error) });
     return [];
   }
 }
@@ -213,13 +216,13 @@ async function discoverVllmModels(
       signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) {
-      console.warn(`Failed to discover vLLM models: ${response.status}`);
+      log.warn("failed to discover vLLM models", { status: response.status });
       return [];
     }
     const data = (await response.json()) as VllmModelsResponse;
     const models = data.data ?? [];
     if (models.length === 0) {
-      console.warn("No vLLM models found on local instance");
+      log.warn("no vLLM models found on local instance");
       return [];
     }
 
@@ -242,7 +245,7 @@ async function discoverVllmModels(
         } satisfies ModelDefinitionConfig;
       });
   } catch (error) {
-    console.warn(`Failed to discover vLLM models: ${String(error)}`);
+    log.warn("failed to discover vLLM models (catch)", { error: String(error) });
     return [];
   }
 }

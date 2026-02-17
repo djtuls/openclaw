@@ -12,6 +12,9 @@ import {
 import { createBrowserRouteDispatcher } from "../browser/routes/dispatcher.js";
 import { loadConfig } from "../config/config.js";
 import { GatewayClient } from "../gateway/client.js";
+import { createLogger } from "../utils/logger.js";
+
+const log = createLogger("node-host/runner");
 import { loadOrCreateDeviceIdentity } from "../infra/device-identity.js";
 import {
   addAllowlistEntry,
@@ -570,8 +573,7 @@ export async function runNodeHost(opts: NodeHostRunOptions): Promise<void> {
   const scheme = gateway.tls ? "wss" : "ws";
   const url = `${scheme}://${host}:${port}`;
   const pathEnv = ensureNodePathEnv();
-  // eslint-disable-next-line no-console
-  console.log(`node host PATH: ${pathEnv}`);
+  log.info("node host PATH", { path: pathEnv });
 
   const client = new GatewayClient({
     url,
@@ -609,12 +611,10 @@ export async function runNodeHost(opts: NodeHostRunOptions): Promise<void> {
     },
     onConnectError: (err) => {
       // keep retrying (handled by GatewayClient)
-      // eslint-disable-next-line no-console
-      console.error(`node host gateway connect failed: ${err.message}`);
+      log.error("node host gateway connect failed", { error: err.message });
     },
     onClose: (code, reason) => {
-      // eslint-disable-next-line no-console
-      console.error(`node host gateway closed (${code}): ${reason}`);
+      log.error("node host gateway closed", { code, reason });
     },
   });
 

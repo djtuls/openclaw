@@ -1,8 +1,11 @@
 import type { OpenClawConfig } from "../config/config.js";
 import type { SessionEntry, SessionMaintenanceWarning } from "../config/sessions.js";
+import { createLogger } from "../utils/logger.js";
 import { isDeliverableMessageChannel, normalizeMessageChannel } from "../utils/message-channel.js";
 import { resolveSessionDeliveryTarget } from "./outbound/targets.js";
 import { enqueueSystemEvent } from "./system-events.js";
+
+const log = createLogger("infra/session-maintenance");
 
 type WarningParams = {
   cfg: OpenClawConfig;
@@ -102,7 +105,7 @@ export async function deliverSessionMaintenanceWarning(params: WarningParams): P
       payloads: [{ text }],
     });
   } catch (err) {
-    console.warn(`Failed to deliver session maintenance warning: ${String(err)}`);
+    log.warn("failed to deliver session maintenance warning", { error: String(err) });
     enqueueSystemEvent(text, { sessionKey: params.sessionKey });
   }
 }

@@ -7,7 +7,10 @@ import {
   parseAgentSessionKey,
 } from "../routing/session-key.js";
 import { resolveUserPath } from "../utils.js";
+import { createLogger } from "../utils/logger.js";
 import { resolveDefaultAgentWorkspaceDir } from "./workspace.js";
+
+const log = createLogger("agents/scope");
 
 export { resolveAgentIdFromSessionKey } from "../routing/session-key.js";
 
@@ -65,7 +68,7 @@ export function resolveDefaultAgentId(cfg: OpenClawConfig): string {
   const defaults = agents.filter((agent) => agent?.default);
   if (defaults.length > 1 && !defaultAgentWarned) {
     defaultAgentWarned = true;
-    console.warn("Multiple agents marked default=true; using the first entry as default.");
+    log.warn("multiple agents marked default=true; using the first entry as default");
   }
   const chosen = (defaults[0] ?? agents[0])?.id?.trim();
   return normalizeAgentId(chosen || DEFAULT_AGENT_ID);
