@@ -256,7 +256,9 @@ async function listNotebookLLMSources(): Promise<NotebookLLMSource[]> {
     if (!stdout || !stdout.trim()) {
       if (error) {
         const errMsg = error.message || String(error);
-        if (errMsg.includes("not authenticated")) {throw error;}
+        if (errMsg.includes("not authenticated")) {
+          throw error;
+        }
         if (errMsg.includes("not found") || errMsg.includes("ENOENT")) {
           // nlm CLI not installed — disable silently to stop log spam
           console.warn("⚠️  nlm CLI not found — NotebookLLM sync disabled");

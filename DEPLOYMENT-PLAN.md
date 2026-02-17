@@ -5,7 +5,9 @@
 
 ---
 
-## Platform: Fly.io (configured)
+## Platform: Fly.io (configured) — **DEPLOYED**
+
+**App**: `clawdbot-tulsbot` | **URL**: https://clawdbot-tulsbot.fly.dev
 
 ### Prerequisites
 
@@ -93,14 +95,14 @@ fly deploy
 
 ## Production secrets checklist
 
-| Secret | Required | Purpose |
-|--------|----------|---------|
-| `OPENCLAW_GATEWAY_TOKEN` | Yes (Fly) | Gateway auth for non-loopback bind |
-| `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` | Yes | Model provider |
-| `SETUP_PASSWORD` | Yes (Render) | Web setup wizard |
-| `DISCORD_BOT_TOKEN` | If using Discord | Channel |
-| `TELEGRAM_BOT_TOKEN` | If using Telegram | Channel |
-| `SLACK_BOT_TOKEN` + `SLACK_APP_TOKEN` | If using Slack | Channel |
+| Secret                                  | Required          | Purpose                            |
+| --------------------------------------- | ----------------- | ---------------------------------- |
+| `OPENCLAW_GATEWAY_TOKEN`                | Yes (Fly)         | Gateway auth for non-loopback bind |
+| `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` | Yes               | Model provider                     |
+| `SETUP_PASSWORD`                        | Yes (Render)      | Web setup wizard                   |
+| `DISCORD_BOT_TOKEN`                     | If using Discord  | Channel                            |
+| `TELEGRAM_BOT_TOKEN`                    | If using Telegram | Channel                            |
+| `SLACK_BOT_TOKEN` + `SLACK_APP_TOKEN`   | If using Slack    | Channel                            |
 
 ---
 
