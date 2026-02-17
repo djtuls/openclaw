@@ -1,6 +1,9 @@
 import type { DatabaseSync } from "node:sqlite";
 import { truncateUtf16Safe } from "../utils.js";
+import { createLogger } from "../utils/logger.js";
 import { cosineSimilarity, parseEmbedding } from "./internal.js";
+
+const log = createLogger("memory/search");
 
 const vectorToBlob = (embedding: number[]): Buffer =>
   Buffer.from(new Float32Array(embedding).buffer);
@@ -152,15 +155,15 @@ export async function searchKeyword(params: {
     return [];
   }
 
-  // DEBUG: Log all parameters
-  console.log("\n=== searchKeyword DEBUG ===");
-  console.log("Original query:", params.query);
-  console.log("FTS query:", ftsQuery);
-  console.log("Provider model:", params.providerModel);
-  console.log("FTS table:", params.ftsTable);
-  console.log("Source filter SQL:", params.sourceFilter.sql);
-  console.log("Source filter params:", params.sourceFilter.params);
-  console.log("Limit:", params.limit);
+  log.debug("searchKeyword called", {
+    query: params.query,
+    ftsQuery,
+    providerModel: params.providerModel,
+    ftsTable: params.ftsTable,
+    sourceFilterSql: params.sourceFilter.sql,
+    sourceFilterParams: params.sourceFilter.params,
+    limit: params.limit,
+  });
 
   // TWO-STEP QUERY APPROACH to avoid JOIN on UNINDEXED column:
   // Step 1: Query FTS5 table with MATCH to get matching ids and their BM25 ranks
@@ -178,10 +181,10 @@ export async function searchKeyword(params: {
     )
     .all(ftsQuery, params.limit * 3) as Array<{ id: string; rank: number }>;
 
-  console.log("Step 1 - FTS5 MATCH results:", ftsRows.length);
+  log.debug("FTS5 MATCH results", { count: ftsRows.length });
 
   if (ftsRows.length === 0) {
-    console.log("No FTS5 matches found");
+    log.debug("No FTS5 matches found");
     return [];
   }
 
@@ -194,7 +197,7 @@ export async function searchKeyword(params: {
     `  FROM chunks c\n` +
     ` WHERE c.id IN (${placeholders}) AND c.model = ?${params.sourceFilter.sql}`;
 
-  console.log("Step 2 - Chunks query:", chunksQuery);
+  log.debug("Chunks query", { chunksQuery });
 
   const chunkRows = params.db
     .prepare(chunksQuery)
@@ -207,7 +210,7 @@ export async function searchKeyword(params: {
     text: string;
   }>;
 
-  console.log("Step 2 - Chunks results:", chunkRows.length);
+  log.debug("Chunks results", { count: chunkRows.length });
 
   // Create a map of id -> rank from FTS results
   const rankMap = new Map(ftsRows.map((r) => [r.id, r.rank]));
@@ -221,7 +224,7 @@ export async function searchKeyword(params: {
     .toSorted((a, b) => a.rank - b.rank) // Sort by BM25 rank (lower is better)
     .slice(0, params.limit); // Apply final limit
 
-  console.log("Final results after joining and limiting:", rows.length);
+  log.debug("Final results after joining and limiting", { count: rows.length });
 
   return rows.map((row) => {
     const textScore = params.bm25RankToScore(row.rank);

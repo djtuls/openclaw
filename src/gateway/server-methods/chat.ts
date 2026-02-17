@@ -12,6 +12,7 @@ import { createReplyPrefixOptions } from "../../channels/reply-prefix.js";
 import { resolveSessionFilePath } from "../../config/sessions.js";
 import { resolveSendPolicy } from "../../sessions/send-policy.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
+import { sanitizeMessage, sanitizeUserId } from "../../utils/sanitize.js";
 import {
   abortChatRunById,
   abortChatRunsForSessionKey,
@@ -348,7 +349,8 @@ export const chatHandlers: GatewayRequestHandlers = {
       timeoutMs?: number;
       idempotencyKey: string;
     };
-    const stopCommand = isChatStopCommandText(p.message);
+    const sanitizedMessage = sanitizeMessage(p.message);
+    const stopCommand = isChatStopCommandText(sanitizedMessage);
     const normalizedAttachments =
       p.attachments
         ?.map((a) => ({
@@ -367,7 +369,7 @@ export const chatHandlers: GatewayRequestHandlers = {
                 : undefined,
         }))
         .filter((a) => a.content) ?? [];
-    const rawMessage = p.message.trim();
+    const rawMessage = sanitizedMessage.trim();
     if (!rawMessage && normalizedAttachments.length === 0) {
       respond(
         false,
@@ -376,11 +378,11 @@ export const chatHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    let parsedMessage = p.message;
+    let parsedMessage = sanitizedMessage;
     let parsedImages: ChatImageContent[] = [];
     if (normalizedAttachments.length > 0) {
       try {
-        const parsed = await parseMessageWithAttachments(p.message, normalizedAttachments, {
+        const parsed = await parseMessageWithAttachments(sanitizedMessage, normalizedAttachments, {
           maxBytes: 5_000_000,
           log: context.logGateway,
         });
@@ -391,7 +393,7 @@ export const chatHandlers: GatewayRequestHandlers = {
         return;
       }
     }
-    const rawSessionKey = p.sessionKey;
+    const rawSessionKey = sanitizeUserId(p.sessionKey);
     const { cfg, entry, canonicalKey: sessionKey } = loadSessionEntry(rawSessionKey);
     const timeoutMs = resolveAgentTimeoutMs({
       cfg,

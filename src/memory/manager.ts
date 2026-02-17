@@ -817,21 +817,19 @@ export class MemoryIndexManager implements MemorySearchManager {
   }
 
   private ensureSchema() {
-    console.log(
-      "[ensureSchema] Starting - fts.enabled:",
-      this.fts.enabled,
-      "fts.available (before):",
-      this.fts.available,
-    );
+    log.debug("ensureSchema starting", {
+      ftsEnabled: this.fts.enabled,
+      ftsAvailableBefore: this.fts.available,
+    });
     const result = ensureMemoryIndexSchema({
       db: this.db,
       embeddingCacheTable: EMBEDDING_CACHE_TABLE,
       ftsTable: FTS_TABLE,
       ftsEnabled: this.fts.enabled,
     });
-    console.log("[ensureSchema] Result from ensureMemoryIndexSchema:", JSON.stringify(result));
+    log.debug("ensureMemoryIndexSchema result", { result: JSON.stringify(result) });
     this.fts.available = result.ftsAvailable;
-    console.log("[ensureSchema] After assignment - fts.available:", this.fts.available);
+    log.debug("ensureSchema complete", { ftsAvailable: this.fts.available });
     if (result.ftsError) {
       this.fts.loadError = result.ftsError;
       log.warn(`fts unavailable: ${result.ftsError}`);
