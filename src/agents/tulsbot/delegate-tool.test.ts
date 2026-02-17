@@ -1,18 +1,19 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect, beforeEach } from "vitest";
 import type { OpenClawConfig } from "../../config/config.js";
 import { createTulsbotDelegateTool } from "./delegate-tool.js";
 import { clearCache, getCachedKnowledge } from "./knowledge-loader.js";
 
-// Use absolute path for knowledge file in tests
-const KNOWLEDGE_FILE_PATH =
-  "/Users/tulioferro/Backend_local Macbook/Tulsbot/.tulsbot/core-app-knowledge.json";
-process.env.TULSBOT_KNOWLEDGE_PATH = KNOWLEDGE_FILE_PATH;
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const FIXTURE_PATH = path.join(__dirname, "__fixtures__", "core-app-knowledge.json");
 
 describe("Tulsbot Delegate Tool", () => {
   let mockConfig: OpenClawConfig;
 
   beforeEach(() => {
-    // Clear knowledge cache before each test
+    process.env.TULSBOT_KNOWLEDGE_PATH = FIXTURE_PATH;
+    delete process.env.TULSBOT_USE_INDEXED_KNOWLEDGE;
     clearCache();
 
     // Create minimal mock config
@@ -160,9 +161,6 @@ describe("Tulsbot Delegate Tool", () => {
       });
 
       const parsed = result.details;
-      console.log("[DEBUG] Detected domains:", parsed.intent.domains);
-      console.log("[DEBUG] Primary domain (domains[0]):", parsed.intent.domains[0]);
-      console.log("[DEBUG] Selected agent:", parsed.subAgent);
       expect(parsed.success).toBe(true);
       expect(parsed.intent.domains).toContain("notion");
       expect(parsed.subAgent.toLowerCase()).toContain("knowledge");

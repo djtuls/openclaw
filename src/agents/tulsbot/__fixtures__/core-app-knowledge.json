@@ -1,0 +1,125 @@
+{
+  "version": "1.0.0-test",
+  "lastUpdated": "2024-01-01",
+  "agents": [
+    {
+      "name": "Orchestrator",
+      "id": "orchestrator",
+      "description": "Central coordinator, routes tasks to specialists",
+      "capabilities": ["general", "routing"],
+      "triggers": ["general", "help"]
+    },
+    {
+      "name": "TulsCodex",
+      "id": "tulscodex",
+      "description": "Research and coding specialist",
+      "capabilities": ["research", "code review", "documentation"],
+      "triggers": ["research", "code", "search", "find", "implement", "debug"]
+    },
+    {
+      "name": "Knowledge Manager",
+      "id": "knowledge-manager",
+      "description": "Notion workspace specialist",
+      "capabilities": ["notion", "database queries", "workspace search"],
+      "triggers": ["notion", "database", "workspace", "sync"]
+    },
+    {
+      "name": "Memory Heartbeat",
+      "id": "memory-heartbeat",
+      "description": "Memory retrieval specialist",
+      "capabilities": ["recall", "remember", "context retrieval"],
+      "triggers": ["remember", "recall", "memory", "history", "past"]
+    },
+    {
+      "name": "PM Specialist",
+      "id": "pm-specialist",
+      "description": "Project management, task tracking, sprint planning",
+      "capabilities": ["plan", "organize", "sprint", "roadmap"],
+      "triggers": ["plan", "organize", "schedule", "task", "project"]
+    },
+    {
+      "name": "Intelligence Router",
+      "id": "intelligence-router",
+      "description": "Intent classification, query routing",
+      "capabilities": ["analyze", "examine", "review", "evaluate"],
+      "triggers": ["analyze", "examine", "review", "evaluate", "assess"]
+    },
+    {
+      "name": "License Control",
+      "id": "license-control",
+      "description": "License management, compliance tracking",
+      "capabilities": ["license", "compliance"],
+      "triggers": ["license", "compliance"]
+    },
+    {
+      "name": "Content Curator",
+      "id": "content-curator",
+      "description": "Content organization, tagging, metadata enrichment",
+      "capabilities": ["content", "tagging", "metadata"],
+      "triggers": ["content", "tag", "metadata"]
+    },
+    {
+      "name": "Analytics Engine",
+      "id": "analytics-engine",
+      "description": "Workspace analytics, usage patterns, reporting",
+      "capabilities": ["analytics", "reporting"],
+      "triggers": ["analytics", "report", "usage"]
+    },
+    {
+      "name": "Notification Manager",
+      "id": "notification-manager",
+      "description": "Alert routing, notification preferences, digest scheduling",
+      "capabilities": ["notification", "alert", "digest"],
+      "triggers": ["notification", "alert", "digest"]
+    },
+    {
+      "name": "Template Engine",
+      "id": "template-engine",
+      "description": "Page/database template management, creation automation",
+      "capabilities": ["template", "page", "database"],
+      "triggers": ["template", "page", "database"]
+    },
+    {
+      "name": "Integration Bridge",
+      "id": "integration-bridge",
+      "description": "External service connections, webhook management",
+      "capabilities": ["integration", "webhook", "api"],
+      "triggers": ["integration", "webhook", "api"]
+    },
+    {
+      "name": "Search Indexer",
+      "id": "search-indexer",
+      "description": "Workspace search optimization, index maintenance",
+      "capabilities": ["search", "index"],
+      "triggers": ["search", "index"]
+    },
+    {
+      "name": "Workflow Automator",
+      "id": "workflow-automator",
+      "description": "Automation rule execution, trigger management",
+      "capabilities": ["workflow", "automation", "trigger"],
+      "triggers": ["workflow", "automation", "trigger"]
+    },
+    {
+      "name": "Quality Assurance",
+      "id": "quality-assurance",
+      "description": "Data validation, consistency checks, cleanup",
+      "capabilities": ["quality", "validation", "consistency"],
+      "triggers": ["quality", "validation", "consistency"]
+    },
+    {
+      "name": "Access Controller",
+      "id": "access-controller",
+      "description": "Permission management, role-based access",
+      "capabilities": ["access", "permission", "role"],
+      "triggers": ["access", "permission", "role"]
+    },
+    {
+      "name": "Backup Manager",
+      "id": "backup-manager",
+      "description": "Workspace backup, snapshot management",
+      "capabilities": ["backup", "snapshot"],
+      "triggers": ["backup", "snapshot"]
+    }
+  ]
+}
