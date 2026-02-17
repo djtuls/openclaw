@@ -1,8 +1,4 @@
-import {
-  createServer as createHttpServer,
-  type IncomingMessage,
-  type ServerResponse,
-} from "node:http";
+import { type IncomingMessage, type ServerResponse } from "node:http";
 import { Readable } from "node:stream";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { createHooksRequestHandler, createGatewayHttpServer } from "./server-http.js";
