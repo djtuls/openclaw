@@ -3,11 +3,10 @@
  * Tests pre-push hook validation logic and PR creation script
  */
 
-import { execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -211,7 +210,7 @@ describe("PR Automation", () => {
       const scriptPath = path.join(projectRoot, "scripts/create-pr.sh");
 
       const hookContent = fs.readFileSync(hookPath, "utf-8");
-      const scriptContent = fs.readFileSync(scriptPath, "utf-8");
+      const _scriptContent = fs.readFileSync(scriptPath, "utf-8");
 
       // Both should reference the same branch types
       const branchTypes = ["feature", "fix", "chore", "docs", "test", "refactor", "perf"];
