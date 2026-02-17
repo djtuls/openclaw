@@ -1,8 +1,8 @@
 # ClawdBot_Tulsbot 2.0 - Updated Production Readiness Plan
 
-**Last Updated**: 2026-02-16 (Agent 9 - Phase 3 Complete)
+**Last Updated**: 2026-02-16 (Orchestrator - Phase 4 Planning)
 **Repository**: ClawdBot_Tulsbot-2.0
-**Current Status**: 90% Production Ready - Phase 4 Queued
+**Current Status**: 92% Production Ready - Phase 4 Active (granular breakdown below)
 
 ---
 
@@ -202,50 +202,239 @@ To expedite completion, work will be parallelized across multiple specialized ag
 
 ---
 
-### PHASE 4 Agents (Parallel Execution - 1 week)
+### PHASE 4 Agents (Granular Breakdown - Context-Safe)
 
-**Agent 4a: Error Recovery** (1 week)
+> **Why granular?** Each agent has a ~200K token context limit. Tasks are broken into
+> focused units each agent can fully complete, archive, and hand off cleanly.
+> Each sub-agent should finish in 1 session (~30-60 min of work).
 
-- Implement channel disconnection handling
-- Add API failure retry logic
-- Add graceful degradation fallbacks
-- Test all error scenarios
-- Document recovery patterns
+---
 
-**Agent 4b: Performance Optimization** (1 week)
+#### Agent 4a-1: Error Recovery — Gateway Layer
 
-- Add database indexes
-- Implement connection pooling
-- Profile and fix slow queries
-- Add performance benchmarks
-- Document performance targets
+**Scope**: Channel disconnection + exponential backoff only
+**Files to touch**:
 
-**Agent 4c: Observability** (1 week)
+- `src/gateway/` — identify adapter base class
+- Add `disconnectWithRetry()` and `reconnect()` methods
+- Add circuit breaker state (CLOSED → OPEN → HALF_OPEN)
 
-- Implement metrics collection
-- Add structured logging
-- Set up distributed tracing
-- Create monitoring dashboards
-- Document observability stack
+**Tasks**:
 
-**Agent 4d: Security Audit** (1 week)
+1. Read `src/gateway/` structure (list files, read base adapter)
+2. Implement `RetryableGateway` mixin with exponential backoff (max 5 retries, 2s base)
+3. Add circuit breaker: open after 5 consecutive failures, half-open after 30s
+4. Write tests: `src/gateway/retry.test.ts` (happy path, max retries, circuit open/close)
+5. Session archive: `sessions/agent-4a1-gateway-error-recovery.md`
 
-- Audit API key management
-- Implement rate limiting
-- Add input validation
-- Audit dependencies for vulnerabilities
-- Document security posture
+**Quality gate**: Tests pass, no regressions
+**Context budget**: ~40K tokens (focused scope)
 
-**Agent 4e: Load Testing** (1 week)
+---
 
-- Create load test scenarios
-- Test under concurrent load
-- Test memory usage patterns
-- Test database performance
-- Document capacity limits
+#### Agent 4a-2: Error Recovery — Memory & Knowledge Layer
 
-**Estimated Duration**: 1 week (parallel execution)
-**Speedup**: 2x faster than 2 weeks sequential
+**Scope**: SQLite lock timeouts + embedding API fallbacks
+**Files to touch**:
+
+- `src/memory/hybrid.ts` — add timeout + fallback to keyword-only
+- `src/memory/store.ts` (or equivalent) — add connection retry
+- `src/knowledge/` — add missing-file negative cache
+
+**Tasks**:
+
+1. Read `src/memory/hybrid.ts` and identify embedding call sites
+2. Wrap embedding calls with timeout (5s) + fallback to FTS5 keyword search
+3. Add SQLite WAL mode check on startup, retry on SQLITE_BUSY (max 3x)
+4. Add negative lookup cache in knowledge loader (TTL 60s)
+5. Write tests: `src/memory/error-recovery.test.ts`
+6. Session archive: `sessions/agent-4a2-memory-error-recovery.md`
+
+**Quality gate**: All 300+ tests pass, new tests added
+**Context budget**: ~50K tokens
+
+---
+
+#### Agent 4b-1: Performance — Database Indexes
+
+**Scope**: SQLite index audit + add missing indexes only
+**Files to touch**:
+
+- `src/memory/` — migration files or schema definitions
+- Add `CREATE INDEX IF NOT EXISTS` statements
+- Benchmark before/after with `EXPLAIN QUERY PLAN`
+
+**Tasks**:
+
+1. Find all SQLite schema definitions (`*.sql` or migration files)
+2. Run `EXPLAIN QUERY PLAN` on top 5 most frequent queries (identify via grep)
+3. Add indexes for: `namespace`, `created_at`, `session_id`, FTS5 rank columns
+4. Write migration: `src/memory/migrations/002-performance-indexes.sql`
+5. Add benchmark test: `src/memory/benchmark.test.ts` (query time assertions)
+6. Session archive: `sessions/agent-4b1-db-indexes.md`
+
+**Quality gate**: Benchmark test passes, no query regressions
+**Context budget**: ~35K tokens
+
+---
+
+#### Agent 4b-2: Performance — Cache & Query Optimization
+
+**Scope**: LRU cache tuning + slow query profiling
+**Files to touch**:
+
+- `src/memory/hybrid.ts` or cache module
+- `src/agents/tulsbot/delegate-tool.ts` — routing cache
+- Add routing decision cache (TTL 5min, max 100 entries)
+
+**Tasks**:
+
+1. Profile top 3 slowest operations (embedding search, routing, knowledge load)
+2. Tune LRU cache: verify >80% hit rate target, add hit/miss counters
+3. Cache routing decisions in delegate-tool (avoid re-routing same message type)
+4. Add `src/metrics/cache-stats.ts` — expose `getCacheStats()` function
+5. Write tests for cache eviction and hit rate tracking
+6. Session archive: `sessions/agent-4b2-cache-optimization.md`
+
+**Context budget**: ~45K tokens
+
+---
+
+#### Agent 4c-1: Observability — Structured Logging
+
+**Scope**: Replace console.log with structured logger only
+**Files to touch**:
+
+- Create `src/utils/logger.ts` — pino or winston wrapper
+- Replace top 20 most important `console.log/error` calls (not all — high-value paths only)
+- Add correlation ID threading through request lifecycle
+
+**Tasks**:
+
+1. Audit logging: `grep -r "console\." src/ --include="*.ts" | wc -l`
+2. Create `src/utils/logger.ts` with levels: debug/info/warn/error + JSON output
+3. Add `correlationId` to logger context (auto-generate per request)
+4. Replace logs in: gateway handlers, memory search, agent routing, session lifecycle
+5. Add log level config via `LOG_LEVEL` env var (default: `info`)
+6. Write tests: logger output format, level filtering, correlation ID propagation
+7. Session archive: `sessions/agent-4c1-structured-logging.md`
+
+**Quality gate**: No console.log in critical paths, tests pass
+**Context budget**: ~50K tokens
+
+---
+
+#### Agent 4c-2: Observability — Metrics Collection
+
+**Scope**: Add request/latency metrics (no dashboards yet)
+**Files to touch**:
+
+- Create `src/metrics/collector.ts` — in-memory metrics store
+- Instrument: memory search latency, routing time, cache hit/miss, API call counts
+
+**Tasks**:
+
+1. Create `src/metrics/collector.ts` with counters + histograms (no external deps)
+2. Instrument memory search: record P50/P95/P99 latency per namespace
+3. Instrument routing: record decisions per agent type, latency
+4. Instrument API calls: count + latency per provider (Anthropic, embedding)
+5. Add `GET /metrics` endpoint (or log dump on SIGUSR1)
+6. Write tests: metric increment, histogram buckets, reset behavior
+7. Session archive: `sessions/agent-4c2-metrics-collection.md`
+
+**Context budget**: ~45K tokens
+
+---
+
+#### Agent 4d-1: Security — API Key Audit & Input Validation
+
+**Scope**: Env var audit + user input sanitization
+**Files to touch**:
+
+- `src/config/` — verify all secrets come from env, never hardcoded
+- `src/gateway/*/handler.ts` — sanitize incoming message content
+- Add input length limits, strip control characters
+
+**Tasks**:
+
+1. `grep -r "sk-\|api_key\|API_KEY\|secret" src/ --include="*.ts"` — verify no hardcoded secrets
+2. Audit `src/config/zod-schema.*.ts` — confirm all API keys use `z.string()` from env
+3. Add message sanitizer: max 4096 chars, strip null bytes and control chars
+4. Add user ID sanitization: alphanumeric + hyphens only
+5. Write tests: sanitizer edge cases, config validation rejects missing keys
+6. Session archive: `sessions/agent-4d1-security-audit.md`
+
+**Quality gate**: `pnpm audit` shows 0 high/critical, tests pass
+**Context budget**: ~35K tokens
+
+---
+
+#### Agent 4d-2: Security — Rate Limiting
+
+**Scope**: Per-channel + per-user rate limiting
+**Files to touch**:
+
+- Create `src/middleware/rate-limiter.ts`
+- Apply to gateway message handlers
+- Config: `RATE_LIMIT_PER_USER_PER_MIN` (default: 20), `RATE_LIMIT_PER_CHANNEL_PER_MIN` (default: 100)
+
+**Tasks**:
+
+1. Create `src/middleware/rate-limiter.ts` — sliding window (Map-based, no Redis needed)
+2. Add `checkRateLimit(userId, channelId)` returning `{ allowed, retryAfterMs }`
+3. Apply to all gateway handlers (Discord, Slack, Telegram, WhatsApp, etc.)
+4. Return 429-equivalent error with `retryAfter` when rate exceeded
+5. Write tests: single user, burst traffic, per-channel limit, window reset
+6. Session archive: `sessions/agent-4d2-rate-limiting.md`
+
+**Context budget**: ~40K tokens
+
+---
+
+#### Agent 4e-1: Load Testing — Benchmark Suite
+
+**Scope**: Create repeatable load test scripts (not CI-blocking)
+**Files to touch**:
+
+- Create `tests/load/memory-search.bench.ts` — Vitest benchmarks
+- Create `tests/load/concurrent-sessions.bench.ts`
+- Add `pnpm bench` script to `package.json`
+
+**Tasks**:
+
+1. Create `tests/load/memory-search.bench.ts`: 100 concurrent searches, measure P95
+2. Create `tests/load/concurrent-sessions.bench.ts`: 10 parallel sessions, no deadlocks
+3. Add baseline assertions: memory search P95 < 200ms, session create < 50ms
+4. Document capacity limits found in `docs/capacity-limits.md`
+5. Add `"bench": "vitest bench"` to package.json
+6. Session archive: `sessions/agent-4e1-load-testing.md`
+
+**Quality gate**: Bench runs without error, baselines documented
+**Context budget**: ~40K tokens
+
+---
+
+#### Phase 4 Agent Status Table
+
+| Agent | Task                               | Status    | Session Archive                                |
+| ----- | ---------------------------------- | --------- | ---------------------------------------------- |
+| 4a-1  | Error Recovery — Gateway Layer     | 📋 QUEUED | `sessions/agent-4a1-gateway-error-recovery.md` |
+| 4a-2  | Error Recovery — Memory/Knowledge  | 📋 QUEUED | `sessions/agent-4a2-memory-error-recovery.md`  |
+| 4b-1  | Performance — DB Indexes           | 📋 QUEUED | `sessions/agent-4b1-db-indexes.md`             |
+| 4b-2  | Performance — Cache Optimization   | 📋 QUEUED | `sessions/agent-4b2-cache-optimization.md`     |
+| 4c-1  | Observability — Structured Logging | 📋 QUEUED | `sessions/agent-4c1-structured-logging.md`     |
+| 4c-2  | Observability — Metrics Collection | 📋 QUEUED | `sessions/agent-4c2-metrics-collection.md`     |
+| 4d-1  | Security — API Key Audit + Input   | 📋 QUEUED | `sessions/agent-4d1-security-audit.md`         |
+| 4d-2  | Security — Rate Limiting           | 📋 QUEUED | `sessions/agent-4d2-rate-limiting.md`          |
+| 4e-1  | Load Testing — Benchmark Suite     | 📋 QUEUED | `sessions/agent-4e1-load-testing.md`           |
+
+**Parallel groups** (can run simultaneously):
+
+- **Group A**: 4a-1, 4b-1, 4c-1, 4d-1 (no shared files)
+- **Group B** (after Group A): 4a-2, 4b-2, 4c-2, 4d-2, 4e-1
+
+**Estimated Duration**: 3-5 days (parallel execution)
+**Speedup**: 3x faster than original "1 week sequential"
 
 ---
 
@@ -521,139 +710,48 @@ To expedite completion, work will be parallelized across multiple specialized ag
 
 ## Immediate Next Actions
 
-### THIS SESSION (Agent 1) - Foundation Verification & Phase 1 Completion
+### THIS SESSION (Orchestrator) - Phase 4 Planning & Kickoff
 
-**Session Focus**: Solidify the foundation by verifying all tests pass, re-applying lost fixes, and preparing for Phase 2 integration work.
+**Session Focus**: Plan is updated. Phases 1-3 complete. Phase 4 broken into 9 context-safe sub-agents. Git working tree is clean (confirmed). Ready to spawn Phase 4 agents.
 
-#### Priority 1: Foundation Verification (CRITICAL - Do First) ⚡
+#### Confirmed Baseline ✅
 
-1. ✅ Review and update rebuild plan (THIS TASK)
-2. 🔄 **Run full test suite** to confirm baseline health:
+- ✅ Git working tree: **CLEAN** (no pending changes)
+- ✅ Last commit: `02566fc08` — Agent 9 Phase 3 session archive
+- ✅ Test suite: 300/300 passing (Agent 7 verified, Agent 9 maintained)
+- ✅ Phase 3 all 4 agents complete (knowledge cache, Feishu, Matrix, WhatsApp/Signal)
 
-   ```bash
-   pnpm test
-   ```
+#### Phase 4 Kickoff Order
 
-   - Expected: 300/300 tests passing across 44 files
-   - If failures: Document which tests broke and why
-   - Session archive pattern from Agent 7 as reference
+**Wave 1 — Spawn these 4 agents in parallel (no shared files)**:
 
-3. 🔄 **Verify E2E integration tests** execute and pass:
+| Agent | Focus                  | Start Condition |
+| ----- | ---------------------- | --------------- |
+| 4a-1  | Gateway error recovery | Now             |
+| 4b-1  | DB indexes             | Now             |
+| 4c-1  | Structured logging     | Now             |
+| 4d-1  | Security API key audit | Now             |
 
-   ```bash
-   pnpm test tests/e2e/
-   ```
+**Wave 2 — After Wave 1 commits**:
 
-   - `tulsbot-full-flow.test.ts` (main orchestration test)
-   - `discord-integration.e2e.test.ts` (Discord channel)
-   - `slack-integration.e2e.test.ts` (Slack channel)
-   - `telegram-integration.e2e.test.ts` (UNTRACKED - decide git disposition)
+| Agent | Focus                           | Start Condition   |
+| ----- | ------------------------------- | ----------------- |
+| 4a-2  | Memory/knowledge error recovery | After 4a-1 merges |
+| 4b-2  | Cache + query optimization      | After 4b-1 merges |
+| 4c-2  | Metrics collection              | After 4c-1 merges |
+| 4d-2  | Rate limiting                   | After 4d-1 merges |
+| 4e-1  | Load test benchmarks            | After 4b-1 merges |
 
-4. 🔄 **Check A2UI bundle status**:
+#### Each Agent's Starting Instructions
 
-   ```bash
-   ls -lh assets/a2ui/
-   ```
+When spawning a Phase 4 agent, give it:
 
-   - Document if bundle exists and size
-   - If missing: Determine if this blocks any functionality
-   - Update Phase 1 status based on findings
+1. This REBUILD-PLAN.md (reference their specific agent section)
+2. The session archive pattern: see `sessions/agent-9-phase3-complete.md`
+3. Quality gate reminder: maintain 100% test pass rate, archive session on completion
+4. File scope: only touch files listed in their agent section (avoid conflicts)
 
-#### Priority 2: NotebookLLM Script Fix (HIGH - Blocks Knowledge Workflow) 🔧
-
-5. 🔄 **Re-apply lost fix** to `scripts/nlm-extract-tulsbot-knowledge.sh`:
-   - **Problem**: Path resolution broke during repo reorganization
-   - **Solution**: Check session archives for documented fix
-   - **Test**: Run script manually to verify knowledge extraction works:
-     ```bash
-     ./scripts/nlm-extract-tulsbot-knowledge.sh
-     ```
-   - **Validation**: Check if `knowledge-slices/` files regenerate successfully
-
-#### Priority 3: Git Hygiene & State Management (MEDIUM) 📦
-
-6. 🔄 **Review and stage verified changes** (11 modified files):
-   - Memory system improvements (`src/memory/hybrid.ts`, `namespace-isolation.test.ts`)
-   - Test fixes (`src/acp/session.test.ts`, `extensions/lobster/src/lobster-tool.test.ts`)
-   - Session enhancements (`src/acp/session.ts`)
-   - Config updates (`src/config/zod-schema.agent-runtime.ts`)
-   - Tulsbot integration (`src/agents/tulsbot/delegate-tool.ts`, `src/agents/memory-search.ts`)
-   - Build config (`vitest.config.ts`)
-   - Documentation (`README.md`)
-
-7. 🔄 **Decide disposition of untracked files**:
-   - ✅ `knowledge-slices/` (4 files, 66.7KB) → **COMMIT** (generated artifacts)
-   - ✅ `REBUILD-PLAN.md` → **COMMIT** (critical planning doc)
-   - ⚠️ `sessions/` (8 archives) → **KEEP UNTRACKED** or add to `.gitignore` (session history)
-   - ❓ `tests/e2e/telegram-integration.e2e.test.ts` → **COMMIT IF VERIFIED** (untracked test)
-   - ❓ `docs/gh-cli-setup.md` → **COMMIT** (setup documentation)
-
-8. 🔄 **Create focused commit** (or multiple) with clear messages:
-
-   ```bash
-   git add <verified-files>
-   git commit -m "test(core): fix memory system tests and subprocess lifecycle
-
-   - Fix async/await in session tests
-   - Add process.exit(0) to subprocess test fixtures
-   - Update namespace isolation test assertions
-   - Document subprocess lifecycle pattern in MEMORY.md
-
-   All 300/300 tests now passing (Agent 7 verification)"
-   ```
-
-#### Priority 4: Phase 2 Preparation & Documentation (LOW) 📋
-
-9. 🔄 **Audit config-driven memory search status**:
-   - Read `src/acp/session.ts:52` to verify namespace config reading
-   - Check if any additional config flexibility is needed
-   - Document current implementation vs. Phase 2.2 requirements
-   - Determine if "config-driven" is already complete or needs expansion
-
-10. 🔄 **Create gh CLI auth setup checklist**:
-    - Document required GitHub scopes for PR creation
-    - Create `docs/gh-cli-setup.md` if not exists (or verify existing)
-    - Test PR creation workflow manually (optional, low priority)
-    - Prepare instructions for Agent 2 to implement automation
-
-11. 🔄 **Update Phase 1 status** in this plan:
-    - Change "85% COMPLETE" to actual percentage based on findings
-    - Update task statuses (1.1 ✅, 1.2 ✅ or ⚠️, 1.3 ✅ or ❌)
-    - Document any new blockers discovered
-
-#### Success Criteria for Agent 1 ✅
-
-Before handoff to Agent 2, verify:
-
-- ✅ All core tests passing (300/300 maintained)
-- ✅ E2E tests verified and status documented
-- ✅ NotebookLLM script fix re-applied and tested
-- ✅ A2UI bundle status known (exists or documented as not needed)
-- ✅ Git working directory organized (staged vs untracked clear)
-- ✅ Phase 1 completion percentage updated accurately
-- ✅ Phase 2 prerequisites identified and documented
-
-#### Handoff to Agent 2 📮
-
-**What Agent 2 Should Focus On**:
-
-1. **If Phase 1 at 100%**: Begin Phase 2 integration hardening
-   - Expand config-driven flexibility if gaps found
-   - Set up gh CLI authentication for automated PRs
-   - Start multi-channel integration audit (Discord, Slack priority)
-
-2. **If Phase 1 still incomplete**:
-   - Address any remaining Phase 1 blockers discovered
-   - Re-apply any additional lost fixes
-   - Then proceed to Phase 2
-
-**Known Handoff Context**:
-
-- Config-driven memory search: Verify if `session.ts:52` implementation is sufficient
-- Multi-channel testing: Discord, Slack, Telegram E2E tests exist - others need creation
-- Brain sync automation: Already deployed (LaunchAgent running 3x/day)
-
-### NEXT SESSION (Agent 2) - Integration Hardening
+### NEXT SESSION (Phase 4 Wave 1)
 
 ### WITHIN 30 DAYS
 
