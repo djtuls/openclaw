@@ -9,15 +9,15 @@ export type AcpSession = {
   abortController: AbortController | null;
   activeRunId: string | null;
   systemContext?: {
-    knowledgeBase?: any;
-    memoryContext?: any;
-    subAgentRoster?: any[];
+    knowledgeBase?: unknown;
+    memoryContext?: unknown;
+    subAgentRoster?: unknown[];
   };
   metadata?: {
     activeSubAgent?: string;
     knowledgeVersion?: string;
-    workingMemory?: any[];
-    [key: string]: any;
+    workingMemory?: unknown[];
+    [key: string]: unknown;
   };
 };
 

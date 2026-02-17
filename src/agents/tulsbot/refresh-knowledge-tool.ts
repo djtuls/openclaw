@@ -138,16 +138,17 @@ export function createTulsbotRefreshKnowledgeTool(
 
       const writtenFiles: string[] = [];
       const memoryBackend = {
-        store: async (memory: any) => {
+        store: async (memory: unknown) => {
+          const mem = memory as { metadata?: Record<string, unknown>; content: string };
           // Write each chunk to a temporary markdown file
           const filename = `chunk-${Date.now()}-${Math.random().toString(36).slice(2, 9)}.md`;
           const filePath = path.join(tempDir, filename);
 
           // Format with metadata as markdown frontmatter
-          const frontmatter = Object.entries(memory.metadata || {})
+          const frontmatter = Object.entries(mem.metadata || {})
             .map(([key, val]) => `${key}: ${JSON.stringify(val)}`)
             .join("\n");
-          const content = `---\n${frontmatter}\n---\n\n${memory.content}`;
+          const content = `---\n${frontmatter}\n---\n\n${mem.content}`;
 
           await fs.writeFile(filePath, content, "utf-8");
           writtenFiles.push(filePath);
@@ -181,7 +182,8 @@ export function createTulsbotRefreshKnowledgeTool(
           stdout: verbose ? result.stdout : undefined,
           stderr: verbose ? result.stderr : undefined,
         };
-      } catch (error: any) {
+      } catch (err: unknown) {
+        const error = err as { exitCode?: number; duration?: number; message?: string };
         // Extraction failed - return error details
         const result: RefreshKnowledgeResult = {
           status: "error",
@@ -219,7 +221,8 @@ export function createTulsbotRefreshKnowledgeTool(
             force: true,
           });
         }
-      } catch (error: any) {
+      } catch (err: unknown) {
+        const error = err as { message?: string };
         // Import failed - extraction succeeded but import failed
         const result: RefreshKnowledgeResult = {
           status: "partial",

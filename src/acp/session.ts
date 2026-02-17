@@ -3,6 +3,9 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { AcpSession } from "./types.js";
 import { resolveSessionAgentId } from "../agents/agent-scope.js";
 import { getCachedKnowledge } from "../agents/tulsbot/knowledge-loader.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
+
+const log = createSubsystemLogger("acp:session");
 import { getMemorySearchManager } from "../memory/index.js";
 
 export type AcpSessionStore = {
@@ -56,7 +59,7 @@ export function createInMemorySessionStore(): AcpSessionStore {
           agentId,
         });
 
-        let memoryContext: any = null;
+        let memoryContext: unknown = null;
         if (manager) {
           try {
             const results = await manager.search("tulsbot capabilities and sub-agent roster", {
@@ -66,7 +69,7 @@ export function createInMemorySessionStore(): AcpSessionStore {
             memoryContext = results;
           } catch (err) {
             // Memory query failed - continue without memory context
-            console.warn("Failed to query Tulsbot memory context:", err);
+            log.warn("Failed to query Tulsbot memory context", { error: String(err) });
           }
         }
 
@@ -84,7 +87,7 @@ export function createInMemorySessionStore(): AcpSessionStore {
         };
       } catch (err) {
         // Knowledge loading failed - continue with basic session
-        console.error("Failed to initialize Tulsbot session context:", err);
+        log.error("Failed to initialize Tulsbot session context", { error: String(err) });
       }
     }
 

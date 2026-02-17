@@ -2,6 +2,9 @@ import { CURRENT_SESSION_VERSION, SessionManager } from "@mariozechner/pi-coding
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
+
+const log = createSubsystemLogger("session");
 import type { OpenClawConfig } from "../../config/config.js";
 import type { TtsAutoMode } from "../../config/types.tts.js";
 import type { MsgContext, TemplateContext } from "../templating.js";
@@ -326,10 +329,11 @@ export async function initSessionState(params: {
     parentSessionKey !== sessionKey &&
     sessionStore[parentSessionKey]
   ) {
-    console.warn(
-      `[session-init] forking from parent session: parentKey=${parentSessionKey} → sessionKey=${sessionKey} ` +
-        `parentTokens=${sessionStore[parentSessionKey].totalTokens ?? "?"}`,
-    );
+    log.warn("forking from parent session", {
+      parentKey: parentSessionKey,
+      sessionKey,
+      parentTokens: sessionStore[parentSessionKey].totalTokens ?? "?",
+    });
     const forked = forkSessionFromParent({
       parentEntry: sessionStore[parentSessionKey],
       agentId,
@@ -339,7 +343,7 @@ export async function initSessionState(params: {
       sessionId = forked.sessionId;
       sessionEntry.sessionId = forked.sessionId;
       sessionEntry.sessionFile = forked.sessionFile;
-      console.warn(`[session-init] forked session created: file=${forked.sessionFile}`);
+      log.warn("forked session created", { sessionFile: forked.sessionFile });
     }
   }
   if (!sessionEntry.sessionFile) {

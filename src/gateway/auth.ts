@@ -239,11 +239,6 @@ export async function authorizeGatewayConnect(params: {
 }): Promise<GatewayAuthResult> {
   const { auth, connectAuth, req, trustedProxies } = params;
 
-  // Write to file since vitest suppresses console output
-  const fs = require("node:fs");
-  const logEntry = `[${new Date().toISOString()}] AUTH ENTRY: authMode=${auth.mode}, hasToken=${Boolean(connectAuth?.token)}, hasPassword=${Boolean(connectAuth?.password)}, allowTailscale=${auth.allowTailscale}\n`;
-  fs.appendFileSync("/tmp/openclaw-auth-debug.log", logEntry);
-
   const tailscaleWhois = params.tailscaleWhois ?? readTailscaleWhoisIdentity;
   const localDirect = isLocalDirectRequest(req, trustedProxies);
 
@@ -281,47 +276,21 @@ export async function authorizeGatewayConnect(params: {
   }
 
   if (auth.mode === "token") {
-    const fs = require("node:fs");
-    fs.appendFileSync(
-      "/tmp/openclaw-auth-debug.log",
-      `[${new Date().toISOString()}] TOKEN MODE ENTERED\n`,
-    );
-
     if (!auth.token) {
-      fs.appendFileSync(
-        "/tmp/openclaw-auth-debug.log",
-        `[${new Date().toISOString()}] FAIL: token_missing_config\n`,
-      );
       return { ok: false, reason: "token_missing_config" };
     }
     if (!connectAuth?.token) {
-      fs.appendFileSync(
-        "/tmp/openclaw-auth-debug.log",
-        `[${new Date().toISOString()}] FAIL: token_missing from client\n`,
-      );
       limiter?.recordFailure(ip, rateLimitScope);
       return { ok: false, reason: "token_missing" };
     }
 
     const tokensMatch = safeEqualSecret(connectAuth.token, auth.token);
-    fs.appendFileSync(
-      "/tmp/openclaw-auth-debug.log",
-      `[${new Date().toISOString()}] TOKEN COMPARE: server_len=${auth.token?.length}, client_len=${connectAuth.token?.length}, match=${tokensMatch}\n`,
-    );
 
     if (!tokensMatch) {
-      fs.appendFileSync(
-        "/tmp/openclaw-auth-debug.log",
-        `[${new Date().toISOString()}] FAIL: token_mismatch\n`,
-      );
       limiter?.recordFailure(ip, rateLimitScope);
       return { ok: false, reason: "token_mismatch" };
     }
 
-    fs.appendFileSync(
-      "/tmp/openclaw-auth-debug.log",
-      `[${new Date().toISOString()}] SUCCESS: token validated\n`,
-    );
     limiter?.reset(ip, rateLimitScope);
     return { ok: true, method: "token" };
   }

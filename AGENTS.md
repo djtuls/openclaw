@@ -201,3 +201,4 @@
   - Python repomix config is incompatible with Node.js repomix; the sync script uses CLI flags directly.
   - NotebookLM rejects some URLs (e.g. OWASP cheatsheets); Node.js official docs and project docs work fine.
   - Large source files (~10MB codebase snapshots) take several minutes to index; smaller supplementary files index faster.
+  - `execFileNoThrow` contract: always guard empty `stdout` before `JSON.parse(stdout)` — it never throws, returns `{ stdout: "" }` when command fails or binary not found.

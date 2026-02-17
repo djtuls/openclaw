@@ -128,6 +128,9 @@ export function ensureMemoryIndexSchema(params: {
   params.db.exec(`CREATE INDEX IF NOT EXISTS idx_files_source ON files(source);`);
   // files(path, source): covers the common (path = ? AND source = ?) pattern
   params.db.exec(`CREATE INDEX IF NOT EXISTS idx_files_path_source ON files(path, source);`);
+  // chunks(path, source): covers DELETE FROM chunks WHERE path = ? AND source = ? and the correlated
+  // subquery SELECT id FROM chunks WHERE path = ? AND source = ? used in vector/FTS stale-chunk cleanup
+  params.db.exec(`CREATE INDEX IF NOT EXISTS idx_chunks_path_source ON chunks(path, source);`);
 
   return { ftsAvailable, ...(ftsError ? { ftsError } : {}) };
 }

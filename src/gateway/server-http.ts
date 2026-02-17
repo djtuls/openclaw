@@ -241,11 +241,11 @@ export function createHooksRequestHandler(
     }
 
     if (url.searchParams.has("token")) {
-      res.statusCode = 400;
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      res.end(
-        "Hook token must be provided via Authorization: Bearer <token> or X-OpenClaw-Token header (query parameters are not allowed).",
-      );
+      sendJson(res, 400, {
+        error:
+          "Hook token must be provided via Authorization: Bearer <token> or X-OpenClaw-Token header (query parameters are not allowed).",
+        code: "TOKEN_IN_QUERY_PARAM",
+      });
       return true;
     }
 
@@ -255,33 +255,28 @@ export function createHooksRequestHandler(
       const throttle = recordHookAuthFailure(clientKey, Date.now());
       if (throttle.throttled) {
         const retryAfter = throttle.retryAfterSeconds ?? 1;
-        res.statusCode = 429;
         res.setHeader("Retry-After", String(retryAfter));
-        res.setHeader("Content-Type", "text/plain; charset=utf-8");
-        res.end("Too Many Requests");
+        sendJson(res, 429, {
+          error: "Too many failed authentication attempts. Please try again later.",
+          code: "RATE_LIMITED",
+        });
         logHooks.warn(`hook auth throttled for ${clientKey}; retry-after=${retryAfter}s`);
         return true;
       }
-      res.statusCode = 401;
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      res.end("Unauthorized");
+      sendJson(res, 401, { error: "Unauthorized", code: "UNAUTHORIZED" });
       return true;
     }
     clearHookAuthFailure(clientKey);
 
     if (req.method !== "POST") {
-      res.statusCode = 405;
       res.setHeader("Allow", "POST");
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      res.end("Method Not Allowed");
+      sendJson(res, 405, { error: "Method Not Allowed", code: "METHOD_NOT_ALLOWED" });
       return true;
     }
 
     const subPath = url.pathname.slice(basePath.length).replace(/^\/+/, "");
     if (!subPath) {
-      res.statusCode = 404;
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      res.end("Not Found");
+      sendJson(res, 404, { error: "Not Found", code: "NOT_FOUND" });
       return true;
     }
 
@@ -402,9 +397,7 @@ export function createHooksRequestHandler(
       }
     }
 
-    res.statusCode = 404;
-    res.setHeader("Content-Type", "text/plain; charset=utf-8");
-    res.end("Not Found");
+    sendJson(res, 404, { error: "Not Found", code: "NOT_FOUND" });
     return true;
   };
 }
@@ -558,13 +551,16 @@ export function createGatewayHttpServer(opts: {
         }
       }
 
-      res.statusCode = 404;
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      res.end("Not Found");
-    } catch {
-      res.statusCode = 500;
-      res.setHeader("Content-Type", "text/plain; charset=utf-8");
-      res.end("Internal Server Error");
+      sendJson(res, 404, { error: "Not Found", code: "NOT_FOUND" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      try {
+        sendJson(res, 500, { error: "Internal Server Error", code: "INTERNAL_ERROR" });
+      } catch {
+        /* response already sent or socket closed */
+      }
+      // Log the unexpected error so it is visible in server output
+      console.error("[gateway] Unhandled error in handleRequest:", message);
     }
   }
 
@@ -608,7 +604,9 @@ export function attachGatewayUpgradeHandler(opts: {
       wss.handleUpgrade(req, socket, head, (ws) => {
         wss.emit("connection", ws, req);
       });
-    })().catch(() => {
+    })().catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error("[gateway] Unhandled error in upgrade handler:", message);
       socket.destroy();
     });
   });

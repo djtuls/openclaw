@@ -85,7 +85,7 @@ function validateCredentialValue(value: unknown): ConfigStatus {
 function auditChannelAccount(
   plugin: ReturnType<typeof listChannelPlugins>[number],
   accountId: string,
-  cfg: any,
+  cfg: Record<string, unknown>,
 ): ChannelAccountAudit {
   const channelConfig = cfg.channels?.[plugin.id];
   const accountConfig = channelConfig?.accounts?.[accountId] ?? channelConfig;
@@ -299,4 +299,4 @@ async function main() {
   }
 }
 
-main();
+void main();

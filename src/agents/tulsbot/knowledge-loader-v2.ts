@@ -13,6 +13,9 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
+
+const log = createSubsystemLogger("tulsbot:knowledge-v2");
 
 /**
  * Structure representing a Tulsbot sub-agent
@@ -128,9 +131,11 @@ const agentCache = new LRUCache<string, TulsbotSubAgent>(50, (evictedAgentName) 
   if (process.env.DEBUG_KNOWLEDGE_CACHE) {
     const metrics = agentMetrics.get(evictedAgentName);
     if (metrics) {
-      console.log(
-        `[KnowledgeLoaderV2] Cache eviction: ${evictedAgentName} (accessed ${metrics.accessCount}x, avg load: ${metrics.avgLoadTimeMs.toFixed(2)}ms)`,
-      );
+      log.debug("cache eviction", {
+        agent: evictedAgentName,
+        accessCount: metrics.accessCount,
+        avgLoadTimeMs: metrics.avgLoadTimeMs,
+      });
     }
   }
 });
@@ -222,9 +227,11 @@ async function loadIndex(): Promise<KnowledgeIndex> {
     stats.indexLoaded = true;
     stats.indexLoadTimeMs = indexLoadTime;
 
-    console.log(
-      `[KnowledgeLoaderV2] Loaded index v${index.version} with ${index.agentCount} agents in ${indexLoadTime.toFixed(2)}ms`,
-    );
+    log.info("loaded index", {
+      version: index.version,
+      agentCount: index.agentCount,
+      loadTimeMs: indexLoadTime,
+    });
 
     return index;
   } catch (error) {
@@ -723,7 +730,7 @@ export function clearCache(): void {
  * Preload frequently used agents into cache (cache warming)
  */
 export async function preloadAgents(agentNames: string[]): Promise<void> {
-  console.log(`[KnowledgeLoaderV2] Cache warming: preloading ${agentNames.length} agents...`);
+  log.info("cache warming started", { agentCount: agentNames.length });
 
   const startTime = performance.now();
   const results = await Promise.allSettled(agentNames.map((name) => loadAgent(name)));
@@ -732,15 +739,20 @@ export async function preloadAgents(agentNames: string[]): Promise<void> {
   const successful = results.filter((r) => r.status === "fulfilled").length;
   const failed = results.filter((r) => r.status === "rejected").length;
 
-  console.log(
-    `[KnowledgeLoaderV2] Cache warming complete: ${successful}/${agentNames.length} agents loaded in ${duration.toFixed(2)}ms`,
-  );
+  log.info("cache warming complete", {
+    successful,
+    total: agentNames.length,
+    durationMs: duration,
+  });
 
   if (failed > 0) {
-    console.warn(`[KnowledgeLoaderV2] Failed to preload ${failed} agents`);
+    log.warn("failed to preload agents", { failedCount: failed });
     results.forEach((result, idx) => {
       if (result.status === "rejected") {
-        console.error(`  - ${agentNames[idx]}: ${result.reason}`);
+        log.error("agent preload failed", {
+          agent: agentNames[idx],
+          reason: String(result.reason),
+        });
       }
     });
   }
@@ -751,7 +763,7 @@ export async function preloadAgents(agentNames: string[]): Promise<void> {
  */
 export async function warmCacheWithFrequentAgents(topN = 10): Promise<void> {
   if (agentMetrics.size === 0) {
-    console.log("[KnowledgeLoaderV2] No access history available for cache warming");
+    log.debug("no access history available for cache warming");
     return;
   }
 
@@ -762,12 +774,12 @@ export async function warmCacheWithFrequentAgents(topN = 10): Promise<void> {
     .map((m) => m.name);
 
   if (frequentAgents.length === 0) {
-    console.log("[KnowledgeLoaderV2] No frequent agents found for cache warming");
+    log.debug("no frequent agents found for cache warming");
     return;
   }
 
-  console.log(
-    `[KnowledgeLoaderV2] Auto-warming cache with ${frequentAgents.length} frequently accessed agents`,
-  );
+  log.info("auto-warming cache with frequently accessed agents", {
+    agentCount: frequentAgents.length,
+  });
   await preloadAgents(frequentAgents);
 }

@@ -323,21 +323,10 @@ export async function startServerWithClient(
       ? (testState.gatewayAuth as { token?: string }).token
       : undefined);
 
-  // DEBUG: Log token resolution
-  const fs = require("node:fs");
-  fs.appendFileSync(
-    "/tmp/openclaw-auth-debug.log",
-    `[${new Date().toISOString()}] startServerWithClient: token param=${token?.length ?? "undefined"} chars, fallbackToken=${fallbackToken?.length ?? "undefined"} chars\n`,
-  );
-
   if (fallbackToken === undefined) {
     delete process.env.OPENCLAW_GATEWAY_TOKEN;
   } else {
     process.env.OPENCLAW_GATEWAY_TOKEN = fallbackToken;
-    fs.appendFileSync(
-      "/tmp/openclaw-auth-debug.log",
-      `[${new Date().toISOString()}] startServerWithClient: Set env.OPENCLAW_GATEWAY_TOKEN=${fallbackToken?.length} chars\n`,
-    );
   }
 
   let server: Awaited<ReturnType<typeof startGatewayServer>> | null = null;

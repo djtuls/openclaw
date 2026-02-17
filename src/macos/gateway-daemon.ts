@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import process from "node:process";
 import type { GatewayLockHandle } from "../infra/gateway-lock.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
+
+const log = createSubsystemLogger("gateway-daemon");
 
 declare const __OPENCLAW_VERSION__: string | undefined;
 
@@ -216,9 +219,8 @@ async function main() {
 }
 
 void main().catch((err) => {
-  console.error(
-    "[openclaw] Gateway daemon failed:",
-    err instanceof Error ? (err.stack ?? err.message) : err,
-  );
+  log.error("gateway daemon failed", {
+    error: err instanceof Error ? (err.stack ?? err.message) : String(err),
+  });
   process.exit(1);
 });

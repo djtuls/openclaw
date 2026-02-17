@@ -1,6 +1,8 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
+
+const log = createSubsystemLogger("tulsbot:knowledge");
 
 /**
  * Structure representing a Tulsbot sub-agent from core-app-knowledge.json
@@ -127,9 +129,10 @@ export async function getCachedKnowledge(forceReload = false): Promise<TulsbotKn
     cacheVersion = knowledge.version || "unknown";
     cacheLoadTime = Date.now();
 
-    console.log(
-      `[TulsbotKnowledge] Loaded knowledge v${cacheVersion} with ${knowledge.agents.length} agents`,
-    );
+    log.info("loaded knowledge", {
+      version: cacheVersion,
+      agentCount: knowledge.agents.length,
+    });
   }
 
   return cachedKnowledge;

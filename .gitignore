@@ -89,6 +89,8 @@ anythingllm-sync-output/
 .agent/*.json
 !.agent/workflows/
 local/
+*.key
+openclaw.json
 # Block Tulsbot knowledge base directory, but allow src/agents/tulsbot/ integration code
 /Tulsbot/
 ~/Backend_local Macbook/Tulsbot/
