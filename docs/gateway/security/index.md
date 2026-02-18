@@ -97,8 +97,8 @@ gateway:
   trustedProxies:
     - "127.0.0.1" # if your proxy runs on localhost
   auth:
-    mode: password
-    password: ${OPENCLAW_GATEWAY_PASSWORD}
+    mode: token
+    token: ${OPENCLAW_GATEWAY_TOKEN}
 ```
 
 When `trustedProxies` is configured, the Gateway will use `X-Forwarded-For` headers to determine the real client IP for local client detection. Make sure your proxy overwrites (not appends to) incoming `X-Forwarded-For` headers to prevent spoofing.

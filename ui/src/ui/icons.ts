@@ -5,6 +5,13 @@ import { html, type TemplateResult } from "lit";
 
 export const icons = {
   // Navigation icons
+  home: html`
+    <svg viewBox="0 0 24 24">
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5 9.5V21h14V9.5" />
+      <path d="M9 21v-7h6v7" />
+    </svg>
+  `,
   messageSquare: html`
     <svg viewBox="0 0 24 24">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />

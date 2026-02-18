@@ -1,6 +1,7 @@
 import type { IconName } from "./icons.js";
 
 export const TAB_GROUPS = [
+  { label: "Home", tabs: ["home", "pages"] },
   { label: "Chat", tabs: ["chat"] },
   {
     label: "Control",
@@ -11,6 +12,8 @@ export const TAB_GROUPS = [
 ] as const;
 
 export type Tab =
+  | "home"
+  | "pages"
   | "agents"
   | "overview"
   | "channels"
@@ -26,6 +29,8 @@ export type Tab =
   | "logs";
 
 const TAB_PATHS: Record<Tab, string> = {
+  home: "/",
+  pages: "/pages",
   agents: "/agents",
   overview: "/overview",
   channels: "/channels",
@@ -95,7 +100,7 @@ export function tabFromPath(pathname: string, basePath = ""): Tab | null {
     normalized = "/";
   }
   if (normalized === "/") {
-    return "chat";
+    return "home";
   }
   return PATH_TO_TAB.get(normalized) ?? null;
 }
@@ -124,6 +129,10 @@ export function inferBasePathFromPathname(pathname: string): string {
 
 export function iconForTab(tab: Tab): IconName {
   switch (tab) {
+    case "home":
+      return "home";
+    case "pages":
+      return "puzzle";
     case "agents":
       return "folder";
     case "chat":
@@ -157,6 +166,10 @@ export function iconForTab(tab: Tab): IconName {
 
 export function titleForTab(tab: Tab) {
   switch (tab) {
+    case "home":
+      return "Home";
+    case "pages":
+      return "Pages";
     case "agents":
       return "Agents";
     case "overview":
@@ -190,6 +203,10 @@ export function titleForTab(tab: Tab) {
 
 export function subtitleForTab(tab: Tab) {
   switch (tab) {
+    case "home":
+      return "Boot, health, and the control surface.";
+    case "pages":
+      return "Create and pin custom dashboards.";
     case "agents":
       return "Manage agent workspaces, tools, and identities.";
     case "overview":

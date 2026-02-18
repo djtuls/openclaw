@@ -41,6 +41,7 @@ import {
 } from "./controllers/exec-approvals.ts";
 import { loadLogs } from "./controllers/logs.ts";
 import { loadNodes } from "./controllers/nodes.ts";
+import { TULSBOT_MAIN_SESSION_KEY } from "./controllers/pinned-tulsbot.ts";
 import { loadPresence } from "./controllers/presence.ts";
 import { deleteSession, loadSessions, patchSession } from "./controllers/sessions.ts";
 import {
@@ -70,10 +71,12 @@ import { renderCron } from "./views/cron.ts";
 import { renderDebug } from "./views/debug.ts";
 import { renderExecApprovalPrompt } from "./views/exec-approval.ts";
 import { renderGatewayUrlConfirmation } from "./views/gateway-url-confirmation.ts";
+import { renderHome } from "./views/home.ts";
 import { renderInstances } from "./views/instances.ts";
 import { renderLogs } from "./views/logs.ts";
 import { renderNodes } from "./views/nodes.ts";
 import { renderOverview } from "./views/overview.ts";
+import { renderPages } from "./views/pages.ts";
 import { renderSessions } from "./views/sessions.ts";
 import { renderSkills } from "./views/skills.ts";
 import { renderUsage } from "./views/usage.ts";
@@ -134,11 +137,11 @@ export function renderApp(state: AppViewState) {
           </button>
           <div class="brand">
             <div class="brand-logo">
-              <img src=${basePath ? `${basePath}/favicon.svg` : "/favicon.svg"} alt="Tulsbot" />
+              <img src=${basePath ? `${basePath}/favicon.svg` : "/favicon.svg"} alt="OpenClaw" />
             </div>
             <div class="brand-text">
-              <div class="brand-title">TULSBOT</div>
-              <div class="brand-sub">Mission Control</div>
+              <div class="brand-title">OPENCLAW</div>
+              <div class="brand-sub">Gateway Dashboard</div>
             </div>
           </div>
         </div>
@@ -209,6 +212,61 @@ export function renderApp(state: AppViewState) {
         </section>
 
         ${
+          state.tab === "home"
+            ? renderHome({
+                connected: state.connected,
+                hello: state.hello,
+                settings: state.settings,
+                lastError: state.lastError,
+                lastChannelsRefresh: state.channelsLastSuccess,
+                presenceCount,
+                sessionsCount,
+                cronEnabled: state.cronStatus?.enabled ?? null,
+                cronNext,
+                tulsbotLoading: (state as unknown as { tulsbotChatLoading: boolean })
+                  .tulsbotChatLoading,
+                tulsbotSending: (state as unknown as { tulsbotChatSending: boolean })
+                  .tulsbotChatSending,
+                tulsbotDraft: (state as unknown as { tulsbotChatDraft: string }).tulsbotChatDraft,
+                tulsbotMessages: (state as unknown as { tulsbotChatMessages: unknown[] })
+                  .tulsbotChatMessages,
+                tulsbotStream: (state as unknown as { tulsbotChatStream: string | null })
+                  .tulsbotChatStream,
+                tulsbotError: (state as unknown as { tulsbotChatError: string | null })
+                  .tulsbotChatError,
+                onConnect: () => state.connect(),
+                onRefresh: () => state.loadOverview(),
+                onNavigate: (tab) => state.setTab(tab),
+                onOpenTulsbotChatTab: () => {
+                  const next = TULSBOT_MAIN_SESSION_KEY;
+                  state.sessionKey = next;
+                  state.chatMessage = "";
+                  state.chatStream = null;
+                  (state as unknown as { chatStreamStartedAt: number | null }).chatStreamStartedAt =
+                    null;
+                  state.chatRunId = null;
+                  (state as unknown as { resetToolStream: () => void }).resetToolStream();
+                  state.applySettings({
+                    ...state.settings,
+                    sessionKey: next,
+                    lastActiveSessionKey: next,
+                  });
+                  void state.loadAssistantIdentity();
+                  state.setTab("chat");
+                  void loadChatHistory(state as unknown as Parameters<typeof loadChatHistory>[0]);
+                },
+                onTulsbotDraftChange: (next) => {
+                  (state as unknown as { tulsbotChatDraft: string }).tulsbotChatDraft = next;
+                },
+                onSendTulsbot: (messageOverride) =>
+                  void (
+                    state as unknown as { sendPinnedTulsbotMessage: (m?: string) => Promise<void> }
+                  ).sendPinnedTulsbotMessage(messageOverride),
+              })
+            : nothing
+        }
+
+        ${
           state.tab === "overview"
             ? renderOverview({
                 connected: state.connected,
@@ -236,6 +294,17 @@ export function renderApp(state: AppViewState) {
                 },
                 onConnect: () => state.connect(),
                 onRefresh: () => state.loadOverview(),
+              })
+            : nothing
+        }
+
+        ${
+          state.tab === "pages"
+            ? renderPages({
+                settings: state.settings,
+                connected: state.connected,
+                onSettingsChange: (next) => state.applySettings(next),
+                onNavigate: (tab) => state.setTab(tab),
               })
             : nothing
         }

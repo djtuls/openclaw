@@ -32,6 +32,7 @@ import { isTimeoutError } from "../../failover-error.js";
 import { resolveModelAuthMode } from "../../model-auth.js";
 import { resolveDefaultModelForAgent } from "../../model-selection.js";
 import {
+  downgradeOpenAIReasoningBlocks,
   isCloudCodeAssistFormatError,
   resolveBootstrapMaxChars,
   validateAnthropicTurns,
@@ -573,9 +574,8 @@ export async function runEmbeddedAttempt(
           ? sanitizeToolUseResultPairing(truncated)
           : truncated;
         cacheTrace?.recordStage("session:limited", { messages: limited });
-        if (limited.length > 0) {
-          activeSession.agent.replaceMessages(limited);
-        }
+        // Always replace so we never send unsanitized messages (e.g. orphaned reasoning).
+        activeSession.agent.replaceMessages(limited);
       } catch (err) {
         sessionManager.flushPendingToolResults?.();
         activeSession.dispose();
@@ -775,9 +775,15 @@ export async function runEmbeddedAttempt(
             sessionManager.resetLeaf();
           }
           const sessionContext = sessionManager.buildSessionContext();
-          const sanitizedOrphan = transcriptPolicy.normalizeAntigravityThinkingBlocks
+          let sanitizedOrphan = transcriptPolicy.normalizeAntigravityThinkingBlocks
             ? sanitizeAntigravityThinkingBlocks(sessionContext.messages)
             : sessionContext.messages;
+          const isOpenAIResponses =
+            params.model.api === "openai-responses" ||
+            params.model.api === "openai-codex-responses";
+          if (isOpenAIResponses) {
+            sanitizedOrphan = downgradeOpenAIReasoningBlocks(sanitizedOrphan);
+          }
           activeSession.agent.replaceMessages(sanitizedOrphan);
           log.warn(
             `Removed orphaned user message to prevent consecutive user turns. ` +

@@ -215,7 +215,7 @@ describe("sanitizeSessionHistory", () => {
     expect(result.map((msg) => msg.role)).toEqual(["user"]);
   });
 
-  it("does not downgrade openai reasoning when the model has not changed", async () => {
+  it("downgrades orphaned openai reasoning even when the model has not changed", async () => {
     const sessionEntries: Array<{ type: string; customType: string; data: unknown }> = [
       {
         type: "custom",
@@ -256,10 +256,12 @@ describe("sanitizeSessionHistory", () => {
       sessionId: "test-session",
     });
 
-    expect(result).toEqual(messages);
+    // Orphaned reasoning must be dropped for OpenAI Responses API to avoid
+    // 400 "Item 'rs_...' was provided without its required following item"
+    expect(result).toEqual([]);
   });
 
-  it("downgrades openai reasoning only when the model changes", async () => {
+  it("downgrades openai reasoning when switching from non-OpenAI model", async () => {
     const sessionEntries: Array<{ type: string; customType: string; data: unknown }> = [
       {
         type: "custom",

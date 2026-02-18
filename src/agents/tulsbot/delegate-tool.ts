@@ -4,7 +4,12 @@ import type { AnyAgentTool } from "../tools/common.js";
 import { getMemorySearchManager } from "../../memory/index.js";
 import { resolveSessionAgentId } from "../agent-scope.js";
 import { readStringParam, jsonResult, ToolInputError } from "../tools/common.js";
-import { getCachedKnowledge, type TulsbotSubAgent } from "./knowledge-loader.js";
+import {
+  findAgentByName,
+  getCachedKnowledge,
+  listAgentNames,
+  type TulsbotSubAgent,
+} from "./knowledge-loader.js";
 
 /**
  * Input schema for tulsbot_delegate tool
@@ -17,7 +22,9 @@ const TulsbotDelegateSchema = Type.Object({
     Type.Object({
       conversationHistory: Type.Optional(Type.String()),
       activeSubAgent: Type.Optional(Type.String()),
-      metadata: Type.Optional(Type.Any()),
+      // Avoid Type.Any(): some providers/tool schema validators reject `{}`-typed fields
+      // and will drop the entire tool definition.
+      metadata: Type.Optional(Type.Record(Type.String(), Type.String())),
     }),
   ),
 });
@@ -663,6 +670,13 @@ export function createTulsbotDelegateTool(options: {
 
         // Load knowledge base (cached after first load)
         const knowledge = await getCachedKnowledge();
+        // Knowledge V2 returns a lazy Proxy array for `knowledge.agents` that does not support
+        // direct index access. Normalize to a concrete agent list so downstream matching logic
+        // stays synchronous and stable.
+        const agentNames = await listAgentNames(knowledge);
+        const agents = (
+          await Promise.all(agentNames.map((name) => findAgentByName(name, knowledge)))
+        ).filter((agent): agent is TulsbotSubAgent => Boolean(agent));
 
         // 1. Analyze intent
         const intent = await analyzeIntent(userMessage, {
@@ -672,7 +686,7 @@ export function createTulsbotDelegateTool(options: {
         });
 
         // 2. Match to sub-agent
-        const selectedAgent = matchToSubAgent(intent, knowledge.agents);
+        const selectedAgent = matchToSubAgent(intent, agents);
 
         // 3. Execute sub-agent logic
         let result = await executeSubAgent(selectedAgent, userMessage, context);
@@ -704,7 +718,7 @@ export function createTulsbotDelegateTool(options: {
             result.suggestedHandoff,
             userMessage,
             result.handoffContext || context,
-            knowledge.agents,
+            agents,
           );
 
           handoffCount++;

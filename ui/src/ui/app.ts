@@ -78,6 +78,11 @@ import {
 } from "./app-tool-stream.ts";
 import { resolveInjectedAssistantIdentity } from "./assistant-identity.ts";
 import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity.ts";
+import {
+  loadPinnedTulsbotChat,
+  sendPinnedTulsbotMessage,
+  type PinnedTulsbotState,
+} from "./controllers/pinned-tulsbot.ts";
 import { loadSettings, type UiSettings } from "./storage.ts";
 import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./ui-types.ts";
 
@@ -102,11 +107,11 @@ function resolveOnboardingMode(): boolean {
   return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
 }
 
-@customElement("tulsbot-app")
-export class TulsbotApp extends LitElement {
+@customElement("openclaw-app")
+export class OpenClawApp extends LitElement {
   @state() settings: UiSettings = loadSettings();
   @state() password = "";
-  @state() tab: Tab = "chat";
+  @state() tab: Tab = "home";
   @state() onboarding = resolveOnboardingMode();
   @state() connected = false;
   @state() theme: ThemeMode = this.settings.theme ?? "system";
@@ -142,6 +147,16 @@ export class TulsbotApp extends LitElement {
   @state() sidebarContent: string | null = null;
   @state() sidebarError: string | null = null;
   @state() splitRatio = this.settings.splitRatio;
+
+  // Home-pinned Tulsbot chat (separate from the main Chat tab sessionKey).
+  @state() tulsbotChatLoading = false;
+  @state() tulsbotChatSending = false;
+  @state() tulsbotChatDraft = "";
+  @state() tulsbotChatMessages: unknown[] = [];
+  @state() tulsbotChatRunId: string | null = null;
+  @state() tulsbotChatStream: string | null = null;
+  @state() tulsbotChatStreamStartedAt: number | null = null;
+  @state() tulsbotChatError: string | null = null;
 
   @state() nodesLoading = false;
   @state() nodes: Array<Record<string, unknown>> = [];
@@ -451,6 +466,18 @@ export class TulsbotApp extends LitElement {
     );
   }
 
+  private asPinnedTulsbotState(): PinnedTulsbotState {
+    return this as unknown as PinnedTulsbotState;
+  }
+
+  async loadPinnedTulsbotChat() {
+    await loadPinnedTulsbotChat(this.asPinnedTulsbotState(), { limit: 60 });
+  }
+
+  async sendPinnedTulsbotMessage(messageOverride?: string) {
+    await sendPinnedTulsbotMessage(this.asPinnedTulsbotState(), messageOverride);
+  }
+
   async handleWhatsAppStart(force: boolean) {
     await handleWhatsAppStartInternal(this, force);
   }
@@ -569,6 +596,3 @@ export class TulsbotApp extends LitElement {
     return renderApp(this as unknown as AppViewState);
   }
 }
-
-/** @deprecated Use TulsbotApp — kept for backward-compat with internal imports */
-export { TulsbotApp as OpenClawApp };

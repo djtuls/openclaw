@@ -25,6 +25,10 @@ import {
   removeExecApproval,
 } from "./controllers/exec-approval.ts";
 import { loadNodes } from "./controllers/nodes.ts";
+import {
+  handlePinnedTulsbotChatEvent,
+  loadPinnedTulsbotChat,
+} from "./controllers/pinned-tulsbot.ts";
 import { loadSessions } from "./controllers/sessions.ts";
 import { GatewayBrowserClient } from "./gateway.ts";
 
@@ -144,6 +148,9 @@ export function connectGateway(host: GatewayHost) {
       void loadAgents(host as unknown as OpenClawApp);
       void loadNodes(host as unknown as OpenClawApp, { quiet: true });
       void loadDevices(host as unknown as OpenClawApp, { quiet: true });
+      void loadPinnedTulsbotChat(host as unknown as Parameters<typeof loadPinnedTulsbotChat>[0], {
+        limit: 60,
+      });
       void refreshActiveTab(host as unknown as Parameters<typeof refreshActiveTab>[0]);
     },
     onClose: ({ code, reason }) => {
@@ -198,6 +205,11 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
       );
     }
     const state = handleChatEvent(host as unknown as OpenClawApp, payload);
+    // Also update the Home-pinned Tulsbot chat panel, regardless of which session the main Chat tab is on.
+    void handlePinnedTulsbotChatEvent(
+      host as unknown as Parameters<typeof handlePinnedTulsbotChatEvent>[0],
+      payload,
+    );
     if (state === "final" || state === "error" || state === "aborted") {
       resetToolStream(host as unknown as Parameters<typeof resetToolStream>[0]);
       void flushChatQueueForEvent(host as unknown as Parameters<typeof flushChatQueueForEvent>[0]);

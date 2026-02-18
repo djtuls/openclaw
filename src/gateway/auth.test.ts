@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AuthRateLimiter } from "./auth-rate-limit.js";
-import { authorizeGatewayConnect } from "./auth.js";
+import { authorizeGatewayConnect, resolveGatewayAuth } from "./auth.js";
 
 function createLimiterSpy(): AuthRateLimiter & {
   check: ReturnType<typeof vi.fn>;
@@ -18,6 +18,17 @@ function createLimiterSpy(): AuthRateLimiter & {
 }
 
 describe("gateway auth", () => {
+  it("prefers token mode when both token and password exist", () => {
+    const resolved = resolveGatewayAuth({
+      authConfig: { token: "t", password: "p" },
+      env: {},
+      tailscaleMode: "off",
+    });
+    expect(resolved.mode).toBe("token");
+    expect(resolved.token).toBe("t");
+    expect(resolved.password).toBe("p");
+  });
+
   it("does not throw when req is missing socket", async () => {
     const res = await authorizeGatewayConnect({
       auth: { mode: "token", token: "secret", allowTailscale: false },

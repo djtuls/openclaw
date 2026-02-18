@@ -26,6 +26,10 @@ export function resolveBrowserControlAuth(
 }
 
 function shouldAutoGenerateBrowserAuth(env: NodeJS.ProcessEnv): boolean {
+  const explicit = (env.OPENCLAW_BROWSER_AUTO_AUTH ?? "").trim().toLowerCase();
+  if (explicit) {
+    return explicit === "1" || explicit === "true" || explicit === "yes" || explicit === "on";
+  }
   const nodeEnv = (env.NODE_ENV ?? "").trim().toLowerCase();
   if (nodeEnv === "test") {
     return false;
@@ -34,7 +38,8 @@ function shouldAutoGenerateBrowserAuth(env: NodeJS.ProcessEnv): boolean {
   if (vitest && vitest !== "0" && vitest !== "false" && vitest !== "off") {
     return false;
   }
-  return true;
+  // Default to no auto-auth so local Control UI can run in explicit open mode.
+  return false;
 }
 
 export async function ensureBrowserControlAuth(params: {

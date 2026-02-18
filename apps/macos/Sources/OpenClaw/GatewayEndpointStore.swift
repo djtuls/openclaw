@@ -619,6 +619,29 @@ actor GatewayEndpointStore {
 }
 
 extension GatewayEndpointStore {
+    private static func normalizeControlUiBasePath(_ value: String?) -> String {
+        let raw = (value ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if raw.isEmpty || raw == "/" {
+            return ""
+        }
+        var base = raw
+        if !base.hasPrefix("/") {
+            base = "/" + base
+        }
+        if base.count > 1, base.hasSuffix("/") {
+            base.removeLast()
+        }
+        return base == "/" ? "" : base
+    }
+
+    private static func resolveControlUiBasePathFromConfig() -> String {
+        let root = OpenClawConfigFile.loadDict()
+        let gateway = root["gateway"] as? [String: Any] ?? [:]
+        let controlUi = gateway["controlUi"] as? [String: Any] ?? [:]
+        let raw = controlUi["basePath"] as? String
+        return self.normalizeControlUiBasePath(raw)
+    }
+
     static func dashboardURL(for config: GatewayConnection.Config) throws -> URL {
         guard var components = URLComponents(url: config.url, resolvingAgainstBaseURL: false) else {
             throw NSError(domain: "Dashboard", code: 1, userInfo: [
@@ -633,7 +656,8 @@ extension GatewayEndpointStore {
         default:
             components.scheme = "http"
         }
-        components.path = "/"
+        let basePath = self.resolveControlUiBasePathFromConfig()
+        components.path = basePath.isEmpty ? "/" : basePath
         var queryItems: [URLQueryItem] = []
         if let token = config.token?.trimmingCharacters(in: .whitespacesAndNewlines),
            !token.isEmpty

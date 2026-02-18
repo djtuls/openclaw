@@ -63,8 +63,9 @@ function hasFollowingNonThinkingBlock(
  * OpenAI Responses API can reject transcripts that contain a standalone `reasoning` item id
  * without the required following item.
  *
- * OpenClaw persists provider-specific reasoning metadata in `thinkingSignature`; if that metadata
- * is incomplete, drop the block to keep history usable.
+ * Two strategies: (1) drop orphaned thinking blocks with rs_ signature; (2) strip
+ * thinkingSignature from orphaned blocks so pi-ai won't push them. We use (2) to preserve
+ * thinking text while avoiding 400.
  */
 export function downgradeOpenAIReasoningBlocks(messages: AgentMessage[]): AgentMessage[] {
   const out: AgentMessage[] = [];
@@ -97,7 +98,17 @@ export function downgradeOpenAIReasoningBlocks(messages: AgentMessage[]): AgentM
         nextContent.push(block as AssistantContentBlock);
         continue;
       }
-      const record = block as OpenAIThinkingBlock;
+      const record = block as OpenAIThinkingBlock & { id?: unknown };
+      // Handle raw reasoning blocks (type "reasoning", id "rs_...") from persisted API format
+      if (record.type === "reasoning") {
+        const id = typeof record.id === "string" ? record.id : "";
+        if (id.startsWith("rs_") && !hasFollowingNonThinkingBlock(assistantMsg.content, i)) {
+          changed = true;
+          continue;
+        }
+        nextContent.push(block);
+        continue;
+      }
       if (record.type !== "thinking") {
         nextContent.push(block);
         continue;
@@ -111,7 +122,10 @@ export function downgradeOpenAIReasoningBlocks(messages: AgentMessage[]): AgentM
         nextContent.push(block);
         continue;
       }
+      // Orphaned: strip thinkingSignature so pi-ai won't push reasoning item to API.
       changed = true;
+      const { thinkingSignature: _sig, ...rest } = record as Record<string, unknown>;
+      nextContent.push(rest as unknown as AssistantContentBlock);
     }
 
     if (!changed) {
@@ -119,7 +133,12 @@ export function downgradeOpenAIReasoningBlocks(messages: AgentMessage[]): AgentM
       continue;
     }
 
-    if (nextContent.length === 0) {
+    // If only thinking blocks remain (no text/toolCall), drop the message;
+    // pi-ai would skip it anyway and it avoids empty/invalid assistant turns.
+    const hasMeaningfulContent = nextContent.some(
+      (b) => b && typeof b === "object" && (b as { type?: string }).type !== "thinking",
+    );
+    if (!hasMeaningfulContent) {
       continue;
     }
 

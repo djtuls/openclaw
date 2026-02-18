@@ -1,6 +1,27 @@
 const KEY = "openclaw.control.settings.v1";
 
+import type { Tab } from "./navigation.ts";
 import type { ThemeMode } from "./theme.ts";
+
+export type CustomDashboardWidget =
+  | {
+      kind: "link";
+      tab: Tab;
+      label?: string;
+      detail?: string;
+    }
+  | {
+      kind: "note";
+      title: string;
+      body: string;
+    };
+
+export type CustomDashboardPage = {
+  id: string;
+  title: string;
+  createdAtMs: number;
+  widgets: CustomDashboardWidget[];
+};
 
 export type UiSettings = {
   gatewayUrl: string;
@@ -13,6 +34,8 @@ export type UiSettings = {
   splitRatio: number; // Sidebar split ratio (0.4 to 0.7, default 0.6)
   navCollapsed: boolean; // Collapsible sidebar state
   navGroupsCollapsed: Record<string, boolean>; // Which nav groups are collapsed
+  customPages: CustomDashboardPage[];
+  customPagesSelectedId: string;
 };
 
 export function loadSettings(): UiSettings {
@@ -32,6 +55,8 @@ export function loadSettings(): UiSettings {
     splitRatio: 0.6,
     navCollapsed: false,
     navGroupsCollapsed: {},
+    customPages: [],
+    customPagesSelectedId: "",
   };
 
   try {
@@ -77,6 +102,9 @@ export function loadSettings(): UiSettings {
         typeof parsed.navGroupsCollapsed === "object" && parsed.navGroupsCollapsed !== null
           ? parsed.navGroupsCollapsed
           : defaults.navGroupsCollapsed,
+      customPages: Array.isArray(parsed.customPages) ? parsed.customPages : [],
+      customPagesSelectedId:
+        typeof parsed.customPagesSelectedId === "string" ? parsed.customPagesSelectedId : "",
     };
   } catch {
     return defaults;

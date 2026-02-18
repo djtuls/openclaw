@@ -1,5 +1,6 @@
+import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { expandHomePrefix, resolveEffectiveHomeDir, resolveRequiredHomeDir } from "./home-dir.js";
 
 describe("resolveEffectiveHomeDir", () => {
@@ -44,6 +45,20 @@ describe("resolveRequiredHomeDir", () => {
         throw new Error("no home");
       }),
     ).toBe(process.cwd());
+  });
+
+  it("falls back to a tmp home when cwd is an unsafe root", () => {
+    const spy = vi.spyOn(process, "cwd").mockReturnValue("/Users");
+    try {
+      const resolved = resolveRequiredHomeDir({} as NodeJS.ProcessEnv, () => {
+        throw new Error("no home");
+      });
+      const uid = typeof process.getuid === "function" ? process.getuid() : undefined;
+      const suffix = uid != null ? `openclaw-home-${uid}` : "openclaw-home";
+      expect(resolved).toBe(path.join(os.tmpdir(), suffix));
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it("returns a fully resolved path for OPENCLAW_HOME", () => {

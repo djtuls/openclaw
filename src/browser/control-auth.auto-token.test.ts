@@ -40,7 +40,7 @@ describe("ensureBrowserControlAuth", () => {
     expect(mocks.writeConfigFile).not.toHaveBeenCalled();
   });
 
-  it("auto-generates and persists a token when auth is missing", async () => {
+  it("auto-generates and persists a token when explicitly enabled", async () => {
     const cfg: OpenClawConfig = {
       browser: {
         enabled: true,
@@ -52,7 +52,10 @@ describe("ensureBrowserControlAuth", () => {
       },
     });
 
-    const result = await ensureBrowserControlAuth({ cfg, env: {} as NodeJS.ProcessEnv });
+    const result = await ensureBrowserControlAuth({
+      cfg,
+      env: { OPENCLAW_BROWSER_AUTO_AUTH: "1" } as NodeJS.ProcessEnv,
+    });
 
     expect(result.generatedToken).toMatch(/^[0-9a-f]{48}$/);
     expect(result.auth.token).toBe(result.generatedToken);
@@ -62,17 +65,14 @@ describe("ensureBrowserControlAuth", () => {
     expect(persisted?.gateway?.auth?.token).toBe(result.generatedToken);
   });
 
-  it("skips auto-generation in test env", async () => {
+  it("skips auto-generation by default", async () => {
     const cfg: OpenClawConfig = {
       browser: {
         enabled: true,
       },
     };
 
-    const result = await ensureBrowserControlAuth({
-      cfg,
-      env: { NODE_ENV: "test" } as NodeJS.ProcessEnv,
-    });
+    const result = await ensureBrowserControlAuth({ cfg, env: {} as NodeJS.ProcessEnv });
 
     expect(result).toEqual({ auth: {} });
     expect(mocks.loadConfig).not.toHaveBeenCalled();
@@ -115,7 +115,10 @@ describe("ensureBrowserControlAuth", () => {
       },
     });
 
-    const result = await ensureBrowserControlAuth({ cfg, env: {} as NodeJS.ProcessEnv });
+    const result = await ensureBrowserControlAuth({
+      cfg,
+      env: { OPENCLAW_BROWSER_AUTO_AUTH: "1" } as NodeJS.ProcessEnv,
+    });
 
     expect(result).toEqual({ auth: { token: "latest-token" } });
     expect(mocks.writeConfigFile).not.toHaveBeenCalled();

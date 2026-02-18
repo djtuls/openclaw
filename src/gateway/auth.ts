@@ -14,7 +14,7 @@ import {
   resolveGatewayClientIp,
 } from "./net.js";
 
-export type ResolvedGatewayAuthMode = "token" | "password";
+export type ResolvedGatewayAuthMode = "token" | "password" | "none";
 
 export type ResolvedGatewayAuth = {
   mode: ResolvedGatewayAuthMode;
@@ -25,7 +25,7 @@ export type ResolvedGatewayAuth = {
 
 export type GatewayAuthResult = {
   ok: boolean;
-  method?: "token" | "password" | "tailscale" | "device-token";
+  method?: "token" | "password" | "tailscale" | "device-token" | "none";
   user?: string;
   reason?: string;
   /** Present when the request was blocked by the rate limiter. */
@@ -199,7 +199,10 @@ export function resolveGatewayAuth(params: {
     env.OPENCLAW_GATEWAY_PASSWORD ??
     env.CLAWDBOT_GATEWAY_PASSWORD ??
     undefined;
-  const mode: ResolvedGatewayAuth["mode"] = authConfig.mode ?? (password ? "password" : "token");
+  const mode: ResolvedGatewayAuth["mode"] =
+    // Prefer token auth by default when both are present.
+    // Password mode is still available (and required for tailscale funnel), but should be explicit.
+    authConfig.mode ?? (token ? "token" : password ? "password" : "none");
   const allowTailscale =
     authConfig.allowTailscale ?? (params.tailscaleMode === "serve" && mode !== "password");
   return {
@@ -211,6 +214,9 @@ export function resolveGatewayAuth(params: {
 }
 
 export function assertGatewayAuthConfigured(auth: ResolvedGatewayAuth): void {
+  if (auth.mode === "none") {
+    return;
+  }
   if (auth.mode === "token" && !auth.token) {
     if (auth.allowTailscale) {
       return;
@@ -273,6 +279,11 @@ export async function authorizeGatewayConnect(params: {
         user: tailscaleCheck.user.login,
       };
     }
+  }
+
+  if (auth.mode === "none") {
+    limiter?.reset(ip, rateLimitScope);
+    return { ok: true, method: "none" };
   }
 
   if (auth.mode === "token") {

@@ -475,10 +475,12 @@ export async function sanitizeSessionHistory(params: {
         modelId: params.modelId,
       })
     : false;
-  const sanitizedOpenAI =
-    isOpenAIResponsesApi && modelChanged
-      ? downgradeOpenAIReasoningBlocks(sanitizedToolResults)
-      : sanitizedToolResults;
+  // Always drop orphaned reasoning blocks for OpenAI Responses API; otherwise the API returns
+  // 400 "Item 'rs_...' of type 'reasoning' was provided without its required following item"
+  // when continuing a conversation (e.g. after tool-only turns or truncated streams).
+  const sanitizedOpenAI = isOpenAIResponsesApi
+    ? downgradeOpenAIReasoningBlocks(sanitizedToolResults)
+    : sanitizedToolResults;
 
   if (hasSnapshot && (!priorSnapshot || modelChanged)) {
     appendModelSnapshot(params.sessionManager, {

@@ -102,10 +102,22 @@ describe("session path safety", () => {
     expect(() =>
       resolveSessionFilePath(
         "sess-1",
-        { sessionFile: "/tmp/openclaw/agents/work/sessions/abc-123.jsonl" },
+        { sessionFile: "/tmp/openclaw/agents/work/sessions/passwd" },
         { sessionsDir },
       ),
     ).toThrow(/within sessions directory/);
+  });
+
+  it("rebases absolute transcript paths from other locations to the local sessions dir", () => {
+    const sessionsDir = "/tmp/openclaw/agents/main/sessions";
+
+    const resolved = resolveSessionFilePath(
+      "sess-1",
+      { sessionFile: "/tmp/openclaw/agents/work/sessions/abc-123.jsonl?token=legacy" },
+      { sessionsDir },
+    );
+
+    expect(resolved).toBe(path.resolve(sessionsDir, "abc-123.jsonl"));
   });
 
   it("uses agent sessions dir fallback for transcript path", () => {

@@ -106,10 +106,8 @@ export function applySettingsFromUrl(host: SettingsHost) {
   }
 
   if (passwordRaw != null) {
-    const password = passwordRaw.trim();
-    if (password) {
-      (host as { password: string }).password = password;
-    }
+    // Security: strip password from the URL but do not import it into app state.
+    // (Passwords should be entered explicitly in the UI, not passed around via URLs.)
     params.delete("password");
     hashParams.delete("password");
     shouldCleanUrl = true;
@@ -317,7 +315,7 @@ export function syncTabWithLocation(host: SettingsHost, replace: boolean) {
   if (typeof window === "undefined") {
     return;
   }
-  const resolved = tabFromPath(window.location.pathname, host.basePath) ?? "chat";
+  const resolved = tabFromPath(window.location.pathname, host.basePath) ?? "home";
   setTabFromRoute(host, resolved);
   syncUrlWithTab(host, resolved, replace);
 }
