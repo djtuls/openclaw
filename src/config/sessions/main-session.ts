@@ -16,8 +16,11 @@ export function resolveMainSessionKey(cfg?: {
     return "global";
   }
   const agents = cfg?.agents?.list ?? [];
-  const defaultAgentId =
-    agents.find((agent) => agent?.default)?.id ?? agents[0]?.id ?? DEFAULT_AGENT_ID;
+  const explicitDefault = agents.find((agent) => agent?.default)?.id;
+  const implicitTulsbot = agents.find(
+    (agent) => typeof agent?.id === "string" && normalizeAgentId(agent.id) === "tulsbot",
+  )?.id;
+  const defaultAgentId = explicitDefault ?? implicitTulsbot ?? agents[0]?.id ?? DEFAULT_AGENT_ID;
   const agentId = normalizeAgentId(defaultAgentId);
   const mainKey = normalizeMainKey(cfg?.session?.mainKey);
   return buildAgentMainSessionKey({ agentId, mainKey });

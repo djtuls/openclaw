@@ -70,7 +70,12 @@ export function resolveDefaultAgentId(cfg: OpenClawConfig): string {
     defaultAgentWarned = true;
     log.warn("multiple agents marked default=true; using the first entry as default");
   }
-  const chosen = (defaults[0] ?? agents[0])?.id?.trim();
+  // If no explicit default is configured, prefer "tulsbot" when present so a
+  // user can add it without needing to reorder agents.list.
+  const implicitTulsbot = agents.find(
+    (agent) => typeof agent?.id === "string" && normalizeAgentId(agent.id) === "tulsbot",
+  );
+  const chosen = (defaults[0] ?? implicitTulsbot ?? agents[0])?.id?.trim();
   return normalizeAgentId(chosen || DEFAULT_AGENT_ID);
 }
 
