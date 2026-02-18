@@ -15,6 +15,8 @@
     "patches/",
     "pnpm-lock.yaml/",
     "Swabble/",
+    "Tulsbot 2.0/",
+    "Tulsbot/",
     "vendor/",
   ],
 }
